@@ -561,7 +561,6 @@ function checkSolution() {
     //         success : function(data) {
     //             console.dir("Successfully ran MAKE_COGNITIVE_PROMPT!!!");
     //         }});
-
     // Need to confirm if this validation is necessary and sufficient
     if(APP.currentProblem) {
         // if(confirm("Are you you sure you want to submit this solution?")) {
@@ -574,6 +573,8 @@ function checkSolution() {
             var problemObject = JSON.parse(JSON.stringify(APP.currentProblem));
             problemObject.type = "check";
             ajax(APP.CHECK_SOLUTION + "?index=" + APP.currentProblemIndex + "&data=" + escape(JSON.stringify(problemObject)), [], "");
+            // call to update the learner profile
+            ajax(APP.LEARNER_PROFILE_UPDATE + "?data=" + escape(JSON.stringify(problemObject)));
         }
         else {
             //!!! Not sending the entire problem object, just the message that the applet needs to unlock itself
