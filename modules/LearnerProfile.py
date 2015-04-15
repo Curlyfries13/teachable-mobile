@@ -5,148 +5,306 @@
 import sys
 import json
 
-class LearnerProfile:
+class Profile:
 
 	def __init__(self):
 		print "Initiating learner profile"
 		# these probabilistic factors will be used to model the subject
 		# start all measures at 0 (we don't know how the student will behave yet)
-		self.xFirst = 0;
-		self.yFirst = 0;
+		self.xFirst = 0
+		self.yFirst = 0
 
-		self.inefficientCorrect = 0;
+		self.inefficientCorrect = 0
+		self.efficientCorrect = 0
+		self.efficientIncorrect = 0
+		self.inefficientIncorrect = 0
 		# these should only work with problems that have negative values should use this
-		self.movesReverse = 0;
-		self.rotatesReverse = 0;
+		self.movesReverse = 0
+		self.rotatesReverse = 0
 
-		self.correctProb = 0;
+		self.correctProb = 0
+		self.problems = 0
+		self.attempts = 0
+
+		self.offByNx = 0
+		self.offByNy = 0
+		self.sumError = 0
+		self.ignoreX = 0
+		self.ignoreY = 0
+
+		self.lastProblem = -1
+
+class LearnerProfile:
+
+	p = None
+
+	def getProfile(self):
+		# DEBUG
+		# print "getting profile"
+		if LearnerProfile.p != None:
+			return self.p
+		else:
+			LearnerProfile.p = Profile()
+			return LearnerProfile.p
 
 	def getValues(self):
 		return json.dumps(self)
 
-	def parsecorrect(self, inList):
-		self.correctProb += 1
-
-		print "Parsing!"
-		# the list has the following format:
-		# {name, label, op{}}
-
+	def parseEfficiency(self, stepList, problem, isCorrect):
+		# expects a stepList, problem, and boolean
+		# stepList is a list with elements of the following format {name, label, op{}}
+		# problem is a problem object in the folloing format
 		'''
-		the inList object is a series of steps, each with the form {name, label, op{}}
+		problemObject{
+			lines, name, points, problemType, solution{
+				lines, points, text, type
+			}
+		}
 
-		name can have the values: moveDistance, turnAngle, or plotPoint
-
-		label depends on the name
-		moveDistance: "Move x" where x is the distance (positive or negative)
-		turnAngle: "Turn t" where t is the angle
-		plotPoint: "Plot Point"
-
-		op depends on the name again but it contains an object
-		moveDistance: 
-			distance : x
-
-		turnAngle:
-			angle : t
-
-		plotPoint:
-			null (there is no object here)
-
-		parsing the list will be the main source of information while parsing
-
-		A list in this section will always have an entry which is plotPoint
+		problemObject.solution.points {name, x, y}
 		'''
+		if(problem.text == 'Learning to use TAG'):
+			# skip this analysis
+			return
 
-		# we can search for any reverse movement, this should indicate whether the 
-		# student uses negative values to move negatively
-
-		# TODO: in the future we will look at the problem to see if a negative is
-		# in the problem; if not then we won't use this as a metric
-		for step in inList:
-			if step.name == "moveDistance":
-				if "-" in step.op.distance:
-					self.movesReverse -= 1
-
-		# if we have a correct solution with length 2 then it is optimized, this means
-		# that the probelm is only on the x axis
-		if len(inList) == 2:
-			# this may not be a good measure since x would be the only direction
-			self.xFirst += 1
-
-		# if the solution has length 3, then the solution can be optimized for moving 
-		# in the y direction only, or rotating instead of rotating to move negatively
-		# or inefficiently in the x
-
-		else if len(inList) == 3:
-			if inList[0].name == "moveDistance":
-				# in this case we know that the solution cannot be efficient the 
-				# solution can only have moved in the x to be correct. There are not
-				# moves in the step list to move away from the x axis, and plot the point 
-				self.inefficientCorrect += 1
-
-			else if inList[0].name == "turnAngle":
-				# if the rotation is 360, we know the solution cannot be efficient
-				# rotating 360 is a null move since it doesn't change state
-				if inList[0].op.angle == "360":
-					self.inefficientCorrect += 1
-
-				# if the student turns 180, then they indicate that they will rotate
-				# the robot around instead of moving backward (in this case the 
-				# problem should only be in the x direction)
-				if inList[0].op.angle == "180":
-					self.rotatesReverse += 1
-
-				# in this case the solution only uses the y direction and the student
-				# must use one move to rotate. The next must be used to move in the 
-				# y-direction and the last move must be plotting the point
-				if inList[0].op.angle == "90" or inList[1].op.angle == "270":
-					self.yFirst += 1
-					if inList[1].name == "moveDistance":
-						if "-" in inList[1].op.distance:
-							# we know this movement is in the negative direction
-
-		# This case can only be efficient if the first move is a movement followed
-		# by a turn. In the case that we don't move first then we turn first.
-		# If the user turns twice that is inefficient since turning twice could be
-		# achieved in a single turn. After the first turn the student should move
-		# to be efficient, however in this case 2 moves remain. Since we have two
-		# moves (one must be plot) either the student moves redundantly or rotates
-		# the first is inefficient, and the second doesn't change state
-		else if len(inList) == 4:
-			if inList[0].name == "turnAngle" and not inList[1].name == "turnAngle":
-				# this is inefficient, see the paragraph above we can still get
-				# data however we can still get some data on the student
-				self.inefficientCorrect += 1
-
-				if inList[0].op.angle == "90" or inList[0].op.angle == "270":
-					self.yFirst += 1
+		stepListLength = len(stepList)
+		if isCorrect and (problem.solution.x == 0 or problem.solution.y == 0):
+			# 1 dimensional problem
+			if problem.solution.x != 0:
+				if stepListLength == 2:
+					return 1
+				elif stepListLength == 3 and stepList[0].name == 'turnAngle':
+					return 1
 				else:
-					self.rotatesReverse += 1
-
-			# here we know that the next move is a turnAngle
-			else if inList[0].name == "turnAngle":
-				self.inefficientCorrect += 1
-
+					return 0
 			else:
-				# first is a move, which must be in the x axis
-				self.xFirst += 1
-				# a second move is redundant (inefficient)
-				if inList[1].name = "moveDistance":
-					self.inefficientCorrect += 1
-
-		# an efficient path requires rotating first. In the case that we don't
-		# rotate first then we move, rotate move and still have two moves, one
-		# which will be plotting the point. If we rotate first then move then
-		# rotate then move, we can plot a point with x and y dimmensions 
-		# efficiently
-		else if len(inList) == 5:
-			if inList[0].name == "turnAngle" and not inList[1].name == "turnAngle":
-				if inList[0].op.angle == "90" or inList[0].op.angle == "270":
-					self.yFirst += 1
-				if inList[0].op.angle == "180" or inList[0].op.angle == "270":
-					self.rotatesReverse += 1
+				# moves in the y direction only
+				if stepListLength == 3:
+					return 1
+				else:
+					return 0
+		elif isCorrect:
+			# problem has 2 dimmensions
+			if stepListLength == 5 and stepList[0].name == 'turnAngle':
+				return 1
+			elif stepListLength == 4:
+				return 1
 			else:
-				self.ineffientCorrect += 1
-
-		# a bit more elaboration is needed here!
+				return 0
 		else:
-			self.inefficient += 1
+			# TODO Jon some of these cases are inefficient! esp. (x, 0) or (0, y)!
+
+			# incorrecct solution, may be able to glean useful information
+			for step in stepList:
+				if (step.name == 'turnAngle' and step.op.angle == 360) or (step.name == 'moveDistance' and step.op.distance == 0):
+					# we can detect this as a null move
+					return 0
+
+				# should fix TODO above
+				if(step.name == 'turnAngle' and step.op.angle == 180):
+					if stepList[0].name != 'turnAngle' or stepList[0].op.angle != 180:
+						# the only case where turning 180 is efficient is on the first move
+						# here we've found a 180 turn that was not the first move
+						return 0
+
+			if stepListLength == 5:
+				# check to see if the movement pattern matches an efficient solution.
+				if stepList[0].name == 'turnAngle' and stepList[1].name == 'moveDistance' and stepList[2].name == 'turnAngle' and stepList[3].name == 'moveDistance' and stepList[4].name == 'plotPoint':
+					return 1
+				else:
+					return 0
+
+			elif stepListLength == 4:
+				# if the solution is on the x-axis and student turns 180 this will register as efficient
+				if stepList[0].name == 'moveDistance' and stepList[1].name == 'turnAngle' and stepList[2].name == 'moveDistance' and stepList[3].name == 'plotPoint':
+					return 1
+				else:
+					return 0
+
+			elif stepListLength == 3:
+				if stepList[0].name == 'turnAngle' and stepList[1].name == 'moveDistance' and stepList[2].name == 'plotPoint':
+					return 1
+				else:
+					return 0
+
+			elif stepListLength == 2:
+				if stepList[0] == 'moveDistance' and stepList[1].name == 'plotPoint':
+					return 1
+				else:
+					return 0
+
+			elif stepListLength > 5:
+				# the solution is inefficient
+				return 0
+			else:
+				# in this case the student either doesn't understand how to use the system
+				# or the system is inefficient.
+				return 0
+
+	def parseError(self, problem, answer):
+
+		# TODO check if point has been plotted
+		profile = getProfile()
+		if str.find(answer.final, 'P1') == -1:
+			# forgot to plot point
+			print 'forgot point'
+
+		isProbOneDimensional = checkOneDimensional(problem)
+		isAnsOnedimensional = checkAnsOneDimensional(answer)
+		if(isAnsOnedimensional and isProbOneDimensional):
+			# both solutions are correct we are off by N
+			parseOffByN(problem, answer)
+		elif(isProbOneDimensional):
+			# odd case
+			print 'resolved1'
+		elif(isAnsOnedimensional):
+			if isSumming(problem, answer):
+				# resolved
+				print 'summing'
+				getProfile().sumError += 1
+			elif ParseIgnore(problem, answer):
+				# resolved
+				print 'ignoring'
+		else:
+			distance = parseOffByN(problem, answer)
+			if profile.offByNx == 0:
+				profile.offByNx = distance[0]
+			else:
+				profile.offByNx = (distance[0] + profile.offByNx)/2
+
+			if profile.offByNy == 0:
+				profile.offByNy = distance[1]
+			else:
+				profile.offbyNy = (distance[1] + profile.offByNy)/2
+
+
+	def isSumming(problem, answer):
+		coordinates = pasrseAnswer(answer)
+		ax = coordinates[0]
+		ay = coordinates[1]
+
+		px = problem.points[0].x
+		py = problem.points[0].y
+
+		possibleAnswers = [ax + ay, ay - ax, ax - ay]
+
+		for answer in possibleAnswers:
+			if px == answer or py == answer:
+				return True
+
+		return False
+
+	def ParseIgnore(problem, answer):
+		coordinates = pasrseAnswer(answer)
+		ax = coordinates[0]
+		ay = coordinates[1]
+
+		px = problem.points[0].x
+		py = problem.points[0].y
+
+		if px == ax and py != ay and ay == 0:
+			getProfile().ignoreY += 1
+			return True
+
+		if py == ay and px != ax and ax == 0:
+			getProfile().ignoreX += 1
+			return True
+
+		return False
+
+	def isFlipping(problem, answer):
+		coordinates = pasrseAnswer(answer)
+		ax = coordinates[0]
+		ay = coordinates[1]
+
+		px = problem.points[0].x
+		py = problem.points[0].y
+
+		if abs(ax) == abs(py) and abs(ay) == abs(px):
+			return True
+		else:
+			return False
+
+
+	def parseOffByN(self, problem, answer):
+		coordinates = pasrseAnswer(answer)
+		ax = coordinates[0]
+		ay = coordinates[1]
+
+		px = problem.points[0].x
+		py = problem.points[0].y
+
+		difference = [0, 0]
+		if px == ax and py == ay:
+			return difference
+		else:
+			difference[0] = px - ax
+			differnece[1] = py - ay
+
+		return difference
+
+
+	def checkAnOneDimensional(self, problem):
+		if problem.soulution.points[0].x == 0 or problem.solution.points[0].y == 0:
+			return True
+		else:
+			return False
+
+	def checkAnsOneDimensional(self, answer):
+		coordinates = parseAnswer(answer)
+		x = coordinates[0]
+		y = coordinates[1]
+
+		if x == 0 or y == 0:
+			return True	x
+		else:
+			return False
+
+	def parseAnswer
+		subString = answer[str.find(answer.final, 'P1'):]
+		print subString
+		subString = subString[str.find(subString, ',') + 1:]
+		stringOffset = str.find(subString, ',')
+		x = int(subString[:stringOffset])
+		subString = subString[stringOffset + 1:]
+		stringOffset = str.find(subString, ':')
+		if stringOffset == -1:
+			y = int(subString)
+		else:
+			y = int(subString[:stringOffset])
+
+		coordinates = [x, y]
+		return tup
+
+	def parseCorrect(self, stepList, problem):
+		getProfile().attempts += 1
+		getProfile().correctProb += 1
+		getProfile().efficientCorrect += 1 if getProfile().parseEfficiency(stepList, problem, True) == 1 else getProfile().inefficientCorrect += 1
+		if (getProfile().lastProblem != problem.id and getProfile.lastProblem != -1):
+			getProfile().problems += 1
+		getProfile().lastProblem = problem.id
+		stepLength = len(stepList)
+		problemContainsNeg = False
+		movedReverse = False
+
+		if problem.solution.points[0].x < 0:
+			problemContainsNeg = True
+		if problem.solution.points[0].y < 0:
+			problemContainsNeg = True
+
+		for step in stepList:
+			# check for moving in reverse
+			if step.name == 'moveDistance' and step.op.distance < 0 and problemContainsNeg:
+				getProfile().movesReverse += 1
+				movedReverse = True
+			elif movedReverse and problemContainsNeg:
+				getProfile().rotatesReverse += 1
+
+	def parseIncorrect(self, stepList, problem, answer):
+		getProfile().attempts += 1
+		getProfile().efficientIncorrect += 1 if getProfile().parseEfficiency(stepList, problem, False) == 1 else getProfile().inefficientIncorrect += 1
+
+		if (getProfile().lastProblem != problem.id and getProfile.lastProblem != -1):
+			getProfile().problems += 1
+		getProfile().lastProblem = problem.id
+		errorType = parseError(problem, answer)

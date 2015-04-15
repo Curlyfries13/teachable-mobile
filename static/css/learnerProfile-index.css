@@ -1,0 +1,33 @@
+body {
+  line-height: 1;
+}
+
+table, th, td {
+    border: 1px solid black;
+    width: 60%;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 2px;
+}
+
+.data{
+  width = 10px;
+}
+
+#data tr:nth-child(even) {
+  background-color: #ddd
+}
+
+#data tr:nth-child(odd) {
+  background-color: #fff
+}
+
+#data th {
+  color: white;
+  background-color: black;
+}

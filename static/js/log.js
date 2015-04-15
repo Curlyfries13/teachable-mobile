@@ -1,12 +1,12 @@
 var TEST_SESSION_JSON;
 
 /*
- * Method for formatting strings. 
+ * Method for formatting strings.
  * Posted by "fearphage" on: http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format/4673436#4673436
  */
 String.prototype.format = function() {
     var args = arguments;
-    return this.replace(/{(\d+)}/g, function(match, number) { 
+    return this.replace(/{(\d+)}/g, function(match, number) {
         return typeof args[number] != 'undefined' ? args[number] : match;
     });
 };
@@ -21,10 +21,10 @@ String.prototype.format = function() {
 */
 function log(title, data, bool_verbose, callback) {
 	try {
+    updateLearnerProfile(data);
 	    if(bool_verbose === undefined) {
 	        bool_verbose = true;//default
 	    }
-
 	    var URLString = "";
 
 	    try {
@@ -85,7 +85,7 @@ function log(title, data, bool_verbose, callback) {
 
 	        return;
 	    }
-		
+
 		if(!TEST_SESSION_JSON) {
 	    	//Interesting note, doing var TEST_SESSION_JSON = ... will create another local variable of the same name and it'll be undefined, so the flow will always enter this block.
 	    	//Don't do var, this'll mean you're looking up the global variable (yuck! global variables!!)
@@ -96,10 +96,10 @@ function log(title, data, bool_verbose, callback) {
 
 	    if(callback) {
 	        callback(function(title, data, bool_verbose) {
-	            /*var logString = ">>> {0} | {1}:{2}h - {3}/{4}/{5}%5Cn".format(title, 
-	                                                              APP.currentDate.getHours(), APP.currentDate.getMinutes(), 
+	            /*var logString = ">>> {0} | {1}:{2}h - {3}/{4}/{5}%5Cn".format(title,
+	                                                              APP.currentDate.getHours(), APP.currentDate.getMinutes(),
 	                                                              APP.currentDate.getMonth()+1, APP.currentDate.getDate(), APP.currentDate.getFullYear());*/
-	    
+
 	            //Doing this for formatting reasons where it becomes easy to include commas in the text file without creating a new column.
 	            if(title) {
 	                title = title.replace(/"/g, "'");//replacing all double quotes with single quotes.
@@ -107,7 +107,7 @@ function log(title, data, bool_verbose, callback) {
 	            }
 
 	            var timeStamp = new Date();
-	            
+
 	            var logString = "%5Cn{0}/{1}/{2} - {3}:{4}:{5}".format(timeStamp.getMonth()+1, timeStamp.getDate(), timeStamp.getFullYear(),
 	                                                                timeStamp.getHours(), timeStamp.getMinutes(), timeStamp.getSeconds());
 
@@ -139,16 +139,16 @@ function log(title, data, bool_verbose, callback) {
 	                // var nextButtonStatusString = "next button " + (GBL_BOOL_NEXT_BUTTON_ENABLED ? "enabled" : "disabled");
 	                // var nextButtonStatusString = "next button " + (($("#next-problem-button").css("opacity") == 1) ? "enabled" : "disabled");
 	                // var listOfSteps = APP.currentStepsList;
-	                
+
 	                // (title ‘problem 1 plot P2’; next button disabled; no steps;)
 	                // logString += ",problem {0},(title '{1}' {2} {3})".format((APP.currentProblemIndex + 1), APP.PROBLEMS[APP.currentProblemIndex].text, title);
-	                
+
 	                // var userStatus = "problem " + (APP.currentProblemIndex + 1) + ":" +
-	                            // "(title " + APP.PROBLEMS[APP.currentProblemIndex].text + ":" + 
+	                            // "(title " + APP.PROBLEMS[APP.currentProblemIndex].text + ":" +
 	                            // nextButtonStatusString + ":" +
-	                            /*(listOfSteps ? JSON.stringify(listOfSteps) : [].toString()) +*/ 
+	                            /*(listOfSteps ? JSON.stringify(listOfSteps) : [].toString()) +*/
 	                            // (listOfSteps ? listOfSteps.length : 0) + ":)";
-	                
+
 	                // userStatus = userStatus.replace(/"/g, "'");
 	                // console.dir("##### userStatus");
 
@@ -170,7 +170,7 @@ function log(title, data, bool_verbose, callback) {
 	                var problemNumber = (data.hasOwnProperty("problem number") || data["problem number"]) ? data["problem number"] : (APP.currentProblemIndex+1);
 	                var problemDesc = (data.hasOwnProperty("problem desc") || data["problem desc"]) ? data["problem desc"] : (APP.PROBLEMS[APP.currentProblemIndex].text);
 	                var problemId = (data.hasOwnProperty("problem id") || data["problem id"]) ? data["problem id"] : (APP.PROBLEMS[APP.currentProblemIndex].id);
-	                
+
 	                logString += ",\"" + data.type + "\""
 	                        + ",\"" + data.parameter + "\""
 	                        + ",\"" + initialState + "\""
@@ -181,7 +181,7 @@ function log(title, data, bool_verbose, callback) {
 	                        + ",\"" + TEST_SESSION_JSON.subject_id + "\""
 	                        + ",\"" + TEST_SESSION_JSON.tester_name + "\""
 	                        + ",\"" + TEST_SESSION_JSON.condition_name + "\"";
-	                        // ",\"" + logSource + "\"" + 
+	                        // ",\"" + logSource + "\"" +
 	                        // ",\"" + geogebra_status + "\"" +
 	                        // ",\"" + userStatus + "\"";
 	            }
@@ -200,10 +200,10 @@ function log(title, data, bool_verbose, callback) {
 	        }, title, data, bool_verbose);
 	    }
 	    else {
-	        /*var logString = ">>> {0} | {1}:{2}h - {3}/{4}/{5}%5Cn".format(title, 
-	                                                              APP.currentDate.getHours(), APP.currentDate.getMinutes(), 
+	        /*var logString = ">>> {0} | {1}:{2}h - {3}/{4}/{5}%5Cn".format(title,
+	                                                              APP.currentDate.getHours(), APP.currentDate.getMinutes(),
 	                                                              APP.currentDate.getMonth()+1, APP.currentDate.getDate(), APP.currentDate.getFullYear());*/
-	    
+
 	        //Doing this for formatting reasons where it becomes easy to include commas in the text file without creating a new column.
 	        if(title) {
 	            title = title.replace(/"/g, "'");//replacing all double quotes with single quotes.
@@ -211,7 +211,7 @@ function log(title, data, bool_verbose, callback) {
 	        }
 
 	        var timeStamp = new Date();
-	        
+
 	        var logString = "%5Cn{0}/{1}/{2} - {3}:{4}:{5}".format(timeStamp.getMonth()+1, timeStamp.getDate(), timeStamp.getFullYear(),
 	                                                            timeStamp.getHours(), timeStamp.getMinutes(), timeStamp.getSeconds());
 
@@ -243,16 +243,16 @@ function log(title, data, bool_verbose, callback) {
 	            // var nextButtonStatusString = "next button " + (GBL_BOOL_NEXT_BUTTON_ENABLED ? "enabled" : "disabled");
 	            // var nextButtonStatusString = "next button " + (($("#next-problem-button").css("opacity") == 1) ? "enabled" : "disabled");
 	            // var listOfSteps = APP.currentStepsList;
-	            
+
 	            // (title ‘problem 1 plot P2’; next button disabled; no steps;)
 	            // logString += ",problem {0},(title '{1}' {2} {3})".format((APP.currentProblemIndex + 1), APP.PROBLEMS[APP.currentProblemIndex].text, title);
-	            
+
 	            // var userStatus = "problem " + (APP.currentProblemIndex + 1) + ":" +
-	                        // "(title " + APP.PROBLEMS[APP.currentProblemIndex].text + ":" + 
+	                        // "(title " + APP.PROBLEMS[APP.currentProblemIndex].text + ":" +
 	                        // nextButtonStatusString + ":" +
-	                        /*(listOfSteps ? JSON.stringify(listOfSteps) : [].toString()) +*/ 
+	                        /*(listOfSteps ? JSON.stringify(listOfSteps) : [].toString()) +*/
 	                        // (listOfSteps ? listOfSteps.length : 0) + ":)";
-	            
+
 	            // userStatus = userStatus.replace(/"/g, "'");
 	            // console.dir("##### userStatus");
 
@@ -274,7 +274,7 @@ function log(title, data, bool_verbose, callback) {
 	            var problemNumber = (data.hasOwnProperty("problem number") || data["problem number"]) ? data["problem number"] : (APP.currentProblemIndex+1);
 	            var problemDesc = (data.hasOwnProperty("problem desc") || data["problem desc"]) ? data["problem desc"] : (APP.PROBLEMS[APP.currentProblemIndex].text);
 	            var problemId = (data.hasOwnProperty("problem id") || data["problem id"]) ? data["problem id"] : (APP.PROBLEMS[APP.currentProblemIndex].id);
-	            
+
 	            logString += ",\"" + data.type + "\""
 	                    + ",\"" + data.parameter + "\""
 	                    + ",\"" + initialState + "\""
@@ -285,7 +285,7 @@ function log(title, data, bool_verbose, callback) {
 	                    + ",\"" + TEST_SESSION_JSON.subject_id + "\""
 	                    + ",\"" + TEST_SESSION_JSON.tester_name + "\""
 	                    + ",\"" + TEST_SESSION_JSON.condition_name + "\"";
-	                    // ",\"" + logSource + "\"" + 
+	                    // ",\"" + logSource + "\"" +
 	                    // ",\"" + geogebra_status + "\"" +
 	                    // ",\"" + userStatus + "\"";
 	        }

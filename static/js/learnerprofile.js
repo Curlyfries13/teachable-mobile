@@ -6,27 +6,14 @@ function updateLearnerProfile(data){
 		console.log("update learner profiles here");
 		if(data.parameter == "correct"){
 			console.log("correct solution, updating profile");
-			ajax(APP.LEARNER_PROFILE_UPDATE + "?correct=true" + "&data=" + escape(JSON.stringify(APP.currentStepsList)));
+			ajax(APP.LEARNER_PROFILE_UPDATE + "?correct=true" + "&stepList=" + escape(JSON.stringify(APP.currentStepsList)) + "&problemObj=" + escape(JSON.stringify(APP.currentProblem)));
+			// DEBUG
+			// window.open("http://127.0.0.1:8000/mobileinterface/learnerprofile/index");
 		}
 		else if(data.parameter == "incorrect"){
 			console.log("incorrect solution, updating profile");
-			//not implemented yet
+			// TODO Jon implement
+			ajax(APP.LEARNER_PROFILE_UPDATE + "?correct=false" + "&stepList=" + escape(JSON.stringify(APP.currentStepsList)) + "&problemObj=" + escape(JSON.stringify(APP.currentProblem)) + "&data=" + escape(JSON.stringify(data)) )
 		}
-	}
-}
-
-function checkLearnerProfile(xFirst, yFirst, moveReverse, correctProb){
-	console.log("Checking learner profile:");
-	if(xFirst){
-		console.log("Learner Profile xFirst:" + xFirst);
-	}
-	if(yFirst){
-		console.log("Learner Profile yFist" + yFirst);
-	}
-	if(moveReverse){
-		console.log("Learner Profile moveReverse" + moveReverse);
-	}
-	if(correctProb){
-		console.log("Learner Profile correctProb" + correctProb);
 	}
 }

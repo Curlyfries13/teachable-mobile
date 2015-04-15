@@ -10,7 +10,7 @@ PROBLEMS.init = function() {
     //The clickable problem heading banner that allows you to restart the current problem.
     $("#current-problem-wrapper h3").click(function() {
         // log("Student restarted current problem",{"source":"ipod"});
-        
+
         refreshProblem("Restart current problem?");
     });
 
@@ -23,7 +23,7 @@ PROBLEMS.init = function() {
 function refreshProblem(message, executeSteps) {
     // log("Calling refreshProblem");
     var refresh = true;
-    
+
     if(message !== undefined) {
         refresh = confirm(message);
     }
@@ -33,7 +33,7 @@ function refreshProblem(message, executeSteps) {
         var initialStateOnLoadString  = calculateInitialStateOnLoad();
 
         CURRENT_GEOGEBRA_STATE = initialStateOnLoadString;
-        
+
         if(message == "Restart current problem?") {//logging only if clicked from header
             log("", {"type":"reset","parameter":"","initial":initialStateOnLoadString, "final":initialStateOnLoadString});
         }
@@ -46,7 +46,7 @@ function refreshProblem(message, executeSteps) {
         callCheckForCognitivePrompt();
 
         if(executeSteps === undefined || executeSteps) { // TODO The first condition should be removed as soon as all calls to this function are updated accordingly
-            executeStep(); 
+            executeStep();
         }
         STEPS.stopDragMode();
     }
@@ -59,14 +59,14 @@ function refreshProblem(message, executeSteps) {
         console.log("@@@@Adding event for click of solution check button@@@@");
         $("#check-solution-button").click(checkSolution);
     }
-    
+
     // Do nothing...
 }
 
 // This function would set the current problem details into the UI, once the APP.currentProblemIndex has been changed to match the problem.
 function setCurrentProblem() {
     // log("Calling setCurrentProblem", {"source":__SOURCE__});
-    
+
     // var tmp = jQuery._data("#next-problem-button", "events");
     // alert(jQuery._data("#next-problem-button","events"));
 
@@ -94,13 +94,13 @@ function setCurrentProblem() {
 
     //This adds the problem heading in the top banner.
     $("#current-problem-wrapper h3").html($("<div/>").html(APP.currentProblem.text).text());
-    
+
     // send message to applet to update its problem
     //COMM.sendToApplet()
-    
+
     // log("Current problem index : " + APP.currentProblemIndex, {"source":__SOURCE__});
     // log("data : " + JSON.stringify(APP.currentProblem), {"source":__SOURCE__}, false);
-    
+
     ajax(APP.UPDATE_CURRENT_PROBLEM + "?index=" + APP.currentProblemIndex + "&data=" + escape(JSON.stringify(APP.currentProblem)), [], ""); // Call #1
 }
 
@@ -144,7 +144,7 @@ function nextProblem() {
 
         // log("Moving to next problem", {"source":"ipod"});
         if((APP.currentProblemIndex) < APP.PROBLEMS.length) {
-            log("",{"type":"change prob","parameter":APP.currentProblemIndex + 2,"initial":PREVIOUS_GEOGEBRA_STATE, "final":CURRENT_GEOGEBRA_STATE, "problem number" : APP.currentProblemIndex + 2, 
+            log("",{"type":"change prob","parameter":APP.currentProblemIndex + 2,"initial":PREVIOUS_GEOGEBRA_STATE, "final":CURRENT_GEOGEBRA_STATE, "problem number" : APP.currentProblemIndex + 2,
                 "problem desc" : APP.PROBLEMS[APP.currentProblemIndex + 1].text, "problem id" : APP.PROBLEMS[APP.currentProblemIndex + 1].id});
         }
     }
@@ -158,12 +158,12 @@ function moveToNext(callback) {
     // log("Calling moveToNext");
 
     PREVIOUS_GEOGEBRA_STATE = CURRENT_GEOGEBRA_STATE;
-    
+
     APP.currentProblemIndex++;
     APP.currentProblem = APP.PROBLEMS[APP.currentProblemIndex];
     setCurrentProblem(); // Call #1
     refreshProblem(undefined, false); // Call #2
-    
+
      //allow robot to resest, then check to see if prompts should be called
      window.setTimeout(function(){
            callCheckForCognitivePrompt();
@@ -191,7 +191,7 @@ function openFeedbackScreen(solutionStatus, appletMessage) {
 	    console.log(APP.LOCK_APPLET);
 
     var button = $("#prompt a");
-    
+
     var correctImage = "Check-256.png";
     var wrongImage = "Close-256.png";
 
@@ -199,7 +199,7 @@ function openFeedbackScreen(solutionStatus, appletMessage) {
     var correctResponseArray = ["Correct-amundo", "O frabjous day!\nThat answer is right!", "The answer is correct.\nHave some metaphorical milk and cookies."];
     var wrongResponseArray = ["That solution is wrong.\nBy the way did you hear that buzzer, I think someone is at the door.", "Negative, that is wrong.\nEpic failure is a stepping stone to epic success. ", "Incorrect-amundo."];
     var responseArray = wrongResponseArray, responseImage = wrongImage;
-    
+
     if(String(solutionStatus).toLowerCase() == "true") {
         responseArray = correctResponseArray;
         responseImage = correctImage;
@@ -213,14 +213,14 @@ function openFeedbackScreen(solutionStatus, appletMessage) {
             console.log("@@@@Adding event for click for next problem button@@@@");
             $("#next-problem-button").click(nextProblem);
         }
-        
+
         GBL_BOOL_NEXT_BUTTON_ENABLED = true;
 
         //Disable check-solution-button here
         $("#check-solution-button").fadeTo(1, 0.5);
         $("#check-solution-button").unbind();
     }
-    
+
     var rndIndx = Math.floor(10 * Math.random()) % (correctResponseArray.length);
 
     // $('<div />', {id : 'responseImageHolder'}).appendTo('#feedback span');
@@ -246,7 +246,7 @@ function openFeedbackScreen(solutionStatus, appletMessage) {
         // window.location.reload(true);
         $("#feedback").fadeOut('slow');
         openEmoticonScreen(appletMessage);
-        
+
         // log("Student's solution is " + ((String(solutionStatus).toLowerCase() == "true") ? "wrong" : "correct"), {"source":__SOURCE__});
         log("",{"type":"correctness feedback","parameter":((String(solutionStatus).toLowerCase() == "true") ? "correct" : "incorrect"),"initial":CURRENT_GEOGEBRA_STATE, "final":CURRENT_GEOGEBRA_STATE});
         // log("System's response to solution '" + responseArray[rndIndx] + "'", {"source":__SOURCE__});
@@ -266,7 +266,7 @@ function openFeedbackScreen(solutionStatus, appletMessage) {
 }
 
 
-/**************************************************************** 
+/****************************************************************
 * Opens a "text message"-type interface on the Student iPod for
 * students to respond to Quinn and dismiss cognitive prompts
 ****************************************************************/
@@ -276,7 +276,7 @@ function openPromptResponseScreen() {
     var container = $('#emoticon');
     var inputs = container.find('input');
     var id = 0;
-    var emotionArray = ["Neutral"]; 
+    var emotionArray = ["Neutral"];
     var promptResponseArray = ["Yes, I'm done."];
     var currentEmotion = "TextMessages";
     var currentEmotionContainer = $('#' + currentEmotion);
@@ -299,7 +299,7 @@ function openPromptResponseScreen() {
     currentEmotion = "MessageEntry";
     currentEmotionContainer = $('#' + currentEmotion);
     $('<div />', {id : currentEmotion}).appendTo(container);
-    $('<label />', {id : "entryfield", text: "Select a message", 'class':'title'}).appendTo("#MessageEntry");    
+    $('<label />', {id : "entryfield", text: "Select a message", 'class':'title'}).appendTo("#MessageEntry");
     $('<a/>', {id : "emoticon-ok", href : "#", text : "Send", click : function() {
 
             if(delayFinished == true)
@@ -336,15 +336,15 @@ function openPromptResponseScreen() {
         }}).appendTo("#MessageEntry");
 
         //10 second lock after cognitive prompt displayed before students can dismiss
-        window.setTimeout(function(){  
+        window.setTimeout(function(){
             delayFinished = true;
         }, 10000);
     console.log(currentEmotionContainer);
-    
+
 
     //add message options that students can select from
     // for(var i = 0 ; i < promptResponseArray.length ; i+3, id++) {
-        currentEmotion = "Emojis";//emotionArray[i];       
+        currentEmotion = "Emojis";//emotionArray[i];
         var j = 0;
         var i = 0;
         $('<div />', {id : currentEmotion}).appendTo(container);
@@ -364,14 +364,14 @@ function openPromptResponseScreen() {
             id++;
             j++;
         }
-        i=0;  
+        i=0;
         j = 0;
     //}
 }
 
-/**************************************************************** 
+/****************************************************************
 * Opens a "text message"-type interface on the Student iPod for
-* students to respond to Quinn and dismiss attribution messages 
+* students to respond to Quinn and dismiss attribution messages
 ****************************************************************/
 function openEmoticonScreen(appletMessage) {
     // alert("I'm emoting!!!");
@@ -443,7 +443,7 @@ function openEmoticonScreen(appletMessage) {
             $('#emoticon').empty();
 
             log("", {"type":"checked emotions", "parameter":checkedEmotions.toString(), "initial":CURRENT_GEOGEBRA_STATE, "final":CURRENT_GEOGEBRA_STATE});
-        
+
             //remove currently displayed attribution message
             $.ajax({url : APP.DISMISS_PROMPT + "?trigger=hit&state=end&number=540" });
             APP.ATTRIBUTION_TRIGGERED == false;
@@ -455,15 +455,15 @@ function openEmoticonScreen(appletMessage) {
             var problemObject = JSON.parse(JSON.stringify(APP.currentProblem));
             problemObject.type = "unlockapplet";
             ajax(APP.LOCK_APPLET + "?index=" + APP.currentProblemIndex + "&data=" + escape(JSON.stringify(problemObject)), [], "");
-            
+
         }}).appendTo("#MessageEntry");
         // $("emoticon-ok").appendTo(container);
     console.log(currentEmotionContainer);
-    
+
 
     //add emoticon options that students can select from
     // for(var i = 0 ; i < emotionEmojiArray.length ; i+3, id++) {
-        currentEmotion = "Emojis";//emotionArray[i];       
+        currentEmotion = "Emojis";//emotionArray[i];
         var j = 0;
         var i = 0;
         $('<div />', {id : currentEmotion}).appendTo(container);
@@ -482,9 +482,9 @@ function openEmoticonScreen(appletMessage) {
             id++;
             j++;
         }
-        i=0;  
+        i=0;
         j = 0;
-        currentEmotion = "Checkboxes";    
+        currentEmotion = "Checkboxes";
         $('<div />', {id : currentEmotion}).appendTo(container);
         while(i<emotionEmojiArray.length)// && j<3)
         {
@@ -507,7 +507,7 @@ function openEmoticonScreen(appletMessage) {
 
 function openPrompt(promptMessages, isFirst) {
     var button = $("#prompt a");
-    
+
     // Updating text
     $("#prompt span").html($("<div/>").html(promptMessages[0]).text());
     // removing previous handlers
@@ -536,12 +536,12 @@ function openPrompt(promptMessages, isFirst) {
 }
 
 function closePrompt() {
-    
+
 
     // Calling moveToNext function
     moveToNext(function() {
         // Fading prompt after moving to next problem
-        $("#prompt").fadeOut('slow');  
+        $("#prompt").fadeOut('slow');
     });
 }
 
@@ -565,16 +565,14 @@ function checkSolution() {
     if(APP.currentProblem) {
         // if(confirm("Are you you sure you want to submit this solution?")) {
         if(true) {
-            // !!!Needed to do this bad cloning since putting type into the original problem structure was causing problems when using moveToProble. 
+            // !!!Needed to do this bad cloning since putting type into the original problem structure was causing problems when using moveToProble.
             // !!!When moving to a new problem, the "type" would persist and would immediately check for valid solution or not.
-            
+
             // log("Student initiated solution check",{"source":__SOURCE__});
 
             var problemObject = JSON.parse(JSON.stringify(APP.currentProblem));
             problemObject.type = "check";
             ajax(APP.CHECK_SOLUTION + "?index=" + APP.currentProblemIndex + "&data=" + escape(JSON.stringify(problemObject)), [], "");
-            // call to update the learner profile
-            ajax(APP.LEARNER_PROFILE_UPDATE + "?data=" + escape(JSON.stringify(problemObject)));
         }
         else {
             //!!! Not sending the entire problem object, just the message that the applet needs to unlock itself
@@ -582,4 +580,3 @@ function checkSolution() {
         }
     }
 }
-

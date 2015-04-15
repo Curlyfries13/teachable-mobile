@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Report of learner profile</title>
+  <link rel="stylesheet" href="{{=URL('static','css/learnerProfile-index.css')}}"
+  <!-- this refreshes the tabe every 5 seconds -->
+  <!-- TODO Jon asynchronous JS update would be nice!-->
+  <meta http-equiv="refresh" content="5">
+</head>
+<body>
+  <p id="model">
+    Model status: <span id="status">-undeclared-</span>
+  </p>
+  <table id="data">
+    <tr>
+      <td class="label">xFirst</td>
+      <td class="value" id="xfirst">{{=learnerProfile.getProfile().xFirst}}</td>
+    </tr>
+    <tr>
+      <td class="label">yFirst</td>
+      <td class="value" id="yfirst">{{=learnerProfile.getProfile().yFirst}}</td>
+    </tr>
+    <tr>
+      <td class="label">inefficient</td>
+      <td class="value" id="inefficient">{{=learnerProfile.getProfile().inefficientCorrect}}</td>
+    </tr>
+    <tr>
+      <td class="label">negative moves</td>
+      <td class="value" id="movReverse">{{=learnerProfile.getProfile().movesReverse}}</td>
+    </tr>
+    <tr>
+      <td class="label">rotates reverse</td>
+      <td class="value" id="rotReverse">{{=learnerProfile.getProfile().rotatesReverse}}</td>
+    </tr>
+    <tr>
+      <td class="label">correct</td>
+      <td class="value" id="correct">{{=learnerProfile.getProfile().correctProb}}</td>
+    </tr>
+    <tr>
+      <td class="label">Problems</td>
+      <td class="value" id="numProblems">{{=learnerProfile.getProfile().problems}}</td>
+    </tr>
+    <tr>
+      <td class="label">Attempts</td>
+      <td class="value" id="attempts">{{=learnerProfile.getProfile().attempts}}</td>
+    </tr>
+  </table>
+</body>
