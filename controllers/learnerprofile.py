@@ -8,7 +8,6 @@ import json
 lp = LearnerProfile()
 
 def init_learnerProfile():
-	# TODO Jon don't let the profile get instantiated multiple times!
 	lp = LearnerProfile()
 
 def index():
@@ -17,9 +16,8 @@ def index():
 
 def update_profile():
 
-	if(not lp):
+	if not lp:
 		init_learnerProfile()
-	# TODO Jon dobule check the profile exists
 
 	# print "update profile!"
 	# print "vars: "
@@ -30,19 +28,34 @@ def update_profile():
 	# print "all vars done"
 	print request.vars['stepList']
 	if 'stepList' in request.vars:
-		if 'correct' in request.vars and request.vars['correct'] == 'true':
-			# print request.vars['data']
-			stepList = json.loads(request.vars['stepList'])
-			problemObj = json.loads(request.vars['problemObj'])
-			# print steplist
-			lp.parseCorrect(stepList,problemObj)
-		elif 'correct' in request.vars and request.vars['correct'] == 'false':
-			stepList = json.loads(request.vars['stepList'])
-			problemObj = json.loads(request.vars['problemObj'])
-			answerObj = json.loads(request.vars['data'])
-			lp.parseIncorrect(stepList, problemObj, answerObj)
+		# DEBUG
+		print(stepList, problemObj)
+		lp.parseStepList(request.vars['stepList'],request.vars['problemObj'])
+
+		# Seperation of concerns here: OLD CODE
+		# if 'correct' in request.vars and request.vars['correct'] == 'true':
+		# 	# print request.vars['data']
+		# 	stepList = json.loads(request.vars['stepList'])
+		# 	problemObj = json.loads(request.vars['problemObj'])
+		# 	# print steplist
+		# 	lp.parseCorrect(stepList,problemObj)
+		# elif 'correct' in request.vars and request.vars['correct'] == 'false':
+		# 	stepList = json.loads(request.vars['stepList'])
+		# 	problemObj = json.loads(request.vars['problemObj'])
+		# 	answerObj = json.loads(request.vars['data'])
+		# 	lp.parseIncorrect(stepList, problemObj, answerObj)
 	else:
 		print "no data sent"
+
+def update_problem_status():
+	# not implemented
+	if not lp:
+		init_learnerProfile()
+
+def update_action_status():
+	# not implemented!
+	return None
+
 
 # def return_profile():
 

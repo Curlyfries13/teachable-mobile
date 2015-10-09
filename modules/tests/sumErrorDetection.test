@@ -1,0 +1,29 @@
+{ "test":
+		{"module": "LearnerProfile",
+			"function": "parseError"},
+	"problem" : {
+			"id":541,
+			"lines": [],
+			"name": "test problem",
+			"points": [],
+			"prompts": [],
+			"text": [],
+			"solution": {
+				"lines": [],
+				"points": [{
+					"name": "P1",
+					"x": 3,
+					"y": 4}]
+
+			}
+		},
+	"answer": {
+			"lines": [],
+			"points": [{
+				"name": "P1",
+				"x": 7,
+				"y": 0
+			}]
+		},
+	"test-expected":{"sumError": 1}
+}
