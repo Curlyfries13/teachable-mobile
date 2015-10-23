@@ -25,5 +25,6 @@
 				"y": 0
 			}]
 		},
-	"test-expected":{"sumError": 1}
+	"test-expected":{"sumError": 1},
+	"test-name": "Sum Error"
 }

@@ -13,6 +13,34 @@ class Profile:
 		print('Initiating learner profile')
 		# these probabilistic factors will be used to model the subject
 		# start all measures at 0 (we don't know how the student will behave yet)
+		self.ErrorTracking = {
+			"xFirst": 0,
+			"yFirst": 0,
+
+			"inefficientCorrect": 0,
+			"efficientCorrect": 0,
+			"efficientIncorrect": 0,
+			"inefficientIncorrect" : 0,
+
+			"movesReverse": 0,
+			"rotatesReverse": 0,
+
+			"correctProb": 0,
+			"problems": 0,
+			"attempts": 0,
+
+			"offByNx": 0,
+			"offByNy": 0,
+			"offByCount": 0,
+			"sumError": 0,
+			"ignoreX": 0,
+			"ignoreY": 0,
+			"flippingError": 0,
+			"wandering": 0,
+			"lastProblem": -1
+		}
+
+		"""
 		self.xFirst = 0
 		self.yFirst = 0
 
@@ -28,8 +56,10 @@ class Profile:
 		self.problems = 0
 		self.attempts = 0
 
+		# off by x or y will give an estimate of the adjustment needed
 		self.offByNx = 0
 		self.offByNy = 0
+		self.offByCount = 0
 		self.sumError = 0
 		self.ignoreX = 0
 		self.ignoreY = 0
@@ -39,34 +69,13 @@ class Profile:
 		self.wandering = 0
 
 		self.lastProblem = -1
+		"""
 
 	def reset(self):
-		xFirst = 0
-		yFirst = 0
+		for element in self.ErrorTracking:
+			self.ErrorTracking[element] = 0
 
-		inefficientCorrect = 0
-		efficientCorrect = 0
-		efficientIncorrect = 0
-		inefficientIncorrect = 0
-		# these should only work with problems that have negative values should use this
-		movesReverse = 0
-		rotatesReverse = 0
-
-		correctProb = 0
-		problems = 0
-		attempts = 0
-
-		offByNx = 0
-		offByNy = 0
-		sumError = 0
-		ignoreX = 0
-		ignoreY = 0
-		flippingError = 0
-
-		# don't know if our student is lost!
-		wandering = 0
-
-		lastProblem = -1
+		self.lastProblem = -1
 
 class SystemState:
 
@@ -92,12 +101,18 @@ def parseStepList(stepList, problem):
 	else:
 		# TODO: not a helpful message
 		print('Error!')
+
 def findAnswer(stepList):
 	if steplist[-1].name == 'plotPoint':
 		#TODO find the point plotted, if not plotted --!
 		point = [0,0]
 		orientation = 0
-		# finish this...
+		# TODO finish this...
+	else:
+
+def parseAnswer(answer, problem):
+	# TODO implement
+
 def getProfile():
 	# DEBUG
 	# print "getting profile"
@@ -213,7 +228,6 @@ def parseEfficiency(stepList, problem, isCorrect):
 def parseError(problem, answer):
 
 	# TODO check if point has been plotted
-	profile = getProfile()
 	if len(answer.points) == 0:
 		# forgot to plot point
 		print('forgot point')
@@ -223,9 +237,7 @@ def parseError(problem, answer):
 	if(isAnsOnedimensional and isProbOneDimensional):
 		# both solutions are 1D
 		if isFlipping(problem, answer):
-			getProfile().flippingError += 1
-		else:
-			parseOffByN(problem, answer)
+			getProfile().ErrorTracking['flippingError'] += 1
 	elif(isProbOneDimensional):
 		# odd case
 		# print('resolved')
@@ -235,24 +247,28 @@ def parseError(problem, answer):
 		if isSumming(problem, answer):
 			# resolved
 			# print('summing')
-			getProfile().sumError += 1
+			getProfile().ErrorTracking['sumError'] += 1
 		elif isFlipping(problem, answer):
-			getProfile.flippingError += 1
+			getProfile.ErrorTracking['flippingError'] += 1
 		elif parseIgnore(problem, answer):
 			# resolved
 			# print('ignoring')
 			pass
 	else:
+		profile = getProfile()
 		distance = parseOffByN(problem, answer)
-		if profile.offByNx == 0:
-			profile.offByNx = distance[0]
-		else:
-			profile.offByNx = (distance[0] + profile.offByNx)/2
+		profile.ErrorTracking['offByCount'] += 1
 
-		if profile.offByNy == 0:
-			profile.offByNy = distance[1]
+		if profile.ErrorTracking['offByNx'] == 0:
+			profile.ErrorTracking['offByNx'] = distance[0]
 		else:
-			profile.offbyNy = (distance[1] + profile.offByNy)/2
+			profile.ErrorTracking['offByNx'] = (distance[0] + profile.ErrorTracking['offByNx'])/2
+
+		if profile.ErrorTracking['offByNy'] == 0:
+			profile.ErrorTracking['offByNy'] = distance[1]
+		else:
+			profile.ErrorTracking['offByNy'] = (distance[1] + profile.ErrorTracking['offByNy'])/2
+		# print(profile.offByNx,profile.offByNy)
 
 def isSumming(problem, answer):
 	# print('checking isSumming')
@@ -263,6 +279,7 @@ def isSumming(problem, answer):
 	py = problem.solution.points[0].y
 
 	possibleAnswers = [px + py, py - px, px - py]
+
 	if ax in possibleAnswers or ay in possibleAnswers:
 		return True
 
@@ -277,11 +294,11 @@ def parseIgnore(problem, answer):
 	py = problem.solution.points[0].y
 
 	if px == ax and py != ay and ay == 0:
-		getProfile().ignoreY += 1
+		getProfile().ErrorTracking['ignoreY'] += 1
 		return True
 
 	if py == ay and px != ax and ax == 0:
-		getProfile().ignoreX += 1
+		getProfile().ErrorTracking['ignoreX'] += 1
 		return True
 
 	return False
@@ -296,8 +313,8 @@ def isFlipping(problem, answer):
 	px = problem.solution.points[0].x
 	py = problem.solution.points[0].y
 
-	print(ax, ay)
-	print(px, py)
+	#print(ax, ay)
+	#print(px, py)
 
 	if abs(ax) == abs(py) and abs(ay) == abs(px):
 		# print('flipping')
@@ -307,7 +324,7 @@ def isFlipping(problem, answer):
 
 def parseOffByN(problem, answer):
 	# print('check off by N')
-	print(problem.points)
+	# print("checking off by N")
 	ax = answer.points[0].x
 	ay = answer.points[0].y
 
@@ -325,20 +342,20 @@ def parseOffByN(problem, answer):
 	return difference
 
 def checkOneDimensional(problem):
-	print('check 1D problem')
+	# print('check 1D problem')
 	if problem.solution.points[0].x == 0 or problem.solution.points[0].y == 0:
-		print('is 1D')
+		# print('is 1D')
 		return True
 	else:
 		return False
 
 def checkAnsOneDimensional(answer):
-	print('check 1D ans')
+	# print('check 1D ans')
 	ax = answer.points[0].x
 	ay = answer.points[0].y
 
 	if ax == 0 or ay == 0:
-		print('is 1D')
+		# print('is 1D')
 		return True
 	else:
 		return False
@@ -347,12 +364,12 @@ def parseCorrect(stepList, problem):
 	getProfile().attempts += 1
 	getProfile().correctProb += 1
 	if parseEfficiency(stepList, problem, True) == 1:
-		getProfile().efficientCorrect += 1
+		getProfile().ErrorTracking['efficientCorrect'] += 1
 	else:
-		getProfile().inefficientCorrect += 1
-	if (getProfile().lastProblem != problem.id and getProfile.lastProblem != -1):
-		getProfile().problems += 1
-	getProfile().lastProblem = problem.id
+		getProfile().ErrorTracking['inefficientCorrect'] += 1
+	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile.ErrorTracking['lastProblem'] != -1):
+		getProfile().ErrorTracking['problems'] += 1
+	getProfile().ErrorTracking['lastProblem'] = problem.id
 	stepLength = len(stepList)
 	problemContainsNeg = False
 	movedReverse = False
@@ -365,21 +382,21 @@ def parseCorrect(stepList, problem):
 	for step in stepList:
 		# check for moving in reverse
 		if step.name == 'moveDistance' and step.op.distance < 0 and problemContainsNeg:
-			getProfile().movesReverse += 1
+			getProfile().ErrorTracking['movesReverse'] += 1
 			movedReverse = True
 		elif movedReverse and problemContainsNeg:
-			getProfile().rotatesReverse += 1
+			getProfile().ErrorTracking['rotatesReverse'] += 1
 
 def parseIncorrect(stepList, problem, answer):
-	getProfile().attempts += 1
+	getProfile().ErrorTracking['attempts'] += 1
 	if parseEfficiency(stepList, problem, False) == 1:
-		getProfile().efficientIncorrect += 1
+		getProfile().ErrorTracking['efficientIncorrect'] += 1
 	else:
-		getProfile().inefficientIncorrect += 1
+		getProfile().ErrorTracking['inefficientIncorrect'] += 1
 
-	if (getProfile().lastProblem != problem.id and getProfile.lastProblem != -1):
-		getProfile().problems += 1
-	getProfile().lastProblem = problem.id
+	if (getProfile().ErrorTracking['lastProblem']!= problem.id and getProfile.ErrorTracking['lastProblem'] != -1):
+		getProfile().ErrorTracking['problems'] += 1
+	getProfile().ErrorTracking['lastProblem'] = problem.id
 	errorType = parseError(problem, answer)
 
 def reset():

@@ -2,7 +2,7 @@
 		{"module": "LearnerProfile",
 			"function": "parseError"},
 	"problem" : {
-			"id":541,
+			"id": 0,
 			"lines": [],
 			"name": "test problem",
 			"points": [],
@@ -12,8 +12,8 @@
 				"lines": [],
 				"points": [{
 					"name": "P1",
-					"x": -4,
-					"y": 0}]
+					"x": 4,
+					"y": 5}]
 
 			}
 		},
@@ -21,10 +21,10 @@
 			"lines": [],
 			"points": [{
 				"name": "P1",
-				"x": 0,
-				"y": -4
+				"x": 2,
+				"y": 5
 			}]
 		},
-	"test-expected":{"flippingError": 1},
-	"test-name": "Flipping Error"
+	"test-expected":{"offByNx": 2},
+	"test-name": "off By N-x"
 }

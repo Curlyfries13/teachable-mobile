@@ -1,0 +1,8 @@
+{
+	"multi-test":[
+		"offByNyDetection.test",
+		"offByNxDetection.test",
+		"flip_x_yDetection.test",
+		"sumErrorDetection.test"
+	]
+}
