@@ -6,6 +6,9 @@
 
 import sys
 import json
+import re
+import SimulationObjects as Sim
+import time
 
 class Profile:
 
@@ -40,36 +43,14 @@ class Profile:
 			"lastProblem": -1
 		}
 
-		"""
-		self.xFirst = 0
-		self.yFirst = 0
-
-		self.inefficientCorrect = 0
-		self.efficientCorrect = 0
-		self.efficientIncorrect = 0
-		self.inefficientIncorrect = 0
-		# these should only work with problems that have negative values should use this
-		self.movesReverse = 0
-		self.rotatesReverse = 0
-
-		self.correctProb = 0
-		self.problems = 0
-		self.attempts = 0
-
-		# off by x or y will give an estimate of the adjustment needed
-		self.offByNx = 0
-		self.offByNy = 0
-		self.offByCount = 0
-		self.sumError = 0
-		self.ignoreX = 0
-		self.ignoreY = 0
-		self.flippingError = 0
-
-		# don't know if our student is lost!
-		self.wandering = 0
-
-		self.lastProblem = -1
-		"""
+	def __str__(self):
+		string = []
+		for key in self.ErrorTracking:
+			string.append(str(key))
+			string.append(': ')
+			string.append(str(self.ErrorTracking[key]))
+			string.append('\n')
+		return ''.join(string)
 
 	def reset(self):
 		for element in self.ErrorTracking:
@@ -77,23 +58,13 @@ class Profile:
 
 		self.lastProblem = -1
 
-class SystemState:
-
-	def __init__(self):
-		print('Initiate System State')
-
-		# current problem should be a group of data in the following format
-		# [problemNumber, problemType, problemSolution]
-		self.currentProblem = None
-		self.lastMove = None
-		self.moveList = None
-
 p = None
-s = None
+quiet = False
 
+# this is used when we call from the webpagge
 def parseStepList(stepList, problem):
 	answer = findAnswer(stepList)
-	print('Parsing steplsit: ', stepList)
+	print('Parsing steplist: ', [step for step in stepList])
 	if 'correct' in request.vars and reqest.vars['correct'] == 'true':
 		parseCorrect(stepList, problem)
 	elif 'correct' in request.vars and request.vars['correct'] == 'false':
@@ -102,16 +73,114 @@ def parseStepList(stepList, problem):
 		# TODO: not a helpful message
 		print('Error!')
 
-def findAnswer(stepList):
-	if steplist[-1].name == 'plotPoint':
-		#TODO find the point plotted, if not plotted --!
-		point = [0,0]
-		orientation = 0
-		# TODO finish this...
-	else:
 
-def parseAnswer(answer, problem):
-	# TODO implement
+def findAnswer(stepList):
+	location = [0,0]
+	orientation = 0
+	points = []
+	answer = Sim.Answer([],[])
+	deleteTarget = re.compile(r'(?P<move>Move)|(?P<turn>Turn) (?P<mag>[0-9]*)')
+	# print(stepList, len(stepList))
+	stepMax = len(stepList)
+	for index, step in enumerate(stepList):
+		if index+1 < stepMax:
+			if step.problemId != stepList[index+1].problemId:
+				if step.label == stepList[index+1].label and step.name == stepList[index+1].name:
+					stepList.remove(step)
+	# print('filtered ', stepList)
+
+	for index, step in enumerate(stepList):
+		### Useful for stepping ###
+		# input()
+		# print(location, orientation, step, index)
+
+		#####  META STEPS #####
+		# NOTE each meta step must be deleted after it is executed;
+		# meta-steps only help the log simulator to copy the actions of the old system
+		if step.name == 'reset':
+			# NOTE we aren't doing anything with the data
+			# after the submitted data is correctly parsed, we need
+			# to look at the unsubmitted data as well!
+			#stepList.remove(step)
+			location = [0,0]
+			orientation = 0
+			points = []
+
+		elif step.name == 'refresh':
+			# NOTE refresh != reset, reset also removes all points
+			#stepList.remove(step)
+			location = [0,0]
+			orientation = 0
+
+		###### TRUE STEPLIST OBJECTS ######
+		# NOTE don't delete these from the list
+		elif step.name == 'moveDistance':
+			if step.op.distance > 10:
+				# these should just be ignored; the system does this
+				continue
+			if orientation == 0:
+				location[0] += step.op.distance
+			elif orientation == 90:
+				location[1] += step.op.distance
+			elif orientation == 180:
+				location[0] -= step.op.distance
+			elif orientation == 270:
+				location[1] -= step.op.distance
+		elif step.name == 'turnAngle':
+			orientation = (orientation + step.op.angle) % 360
+		elif step.name == 'plotPoint':
+			points.append(location)
+
+	answer.lines = []
+	pointCounter = 1
+	for point in points:
+		newPoint = Sim.Point('P' + str(pointCounter),point[0], point[1])
+		answer.points.append(newPoint)
+		pointCounter += 1
+
+	### only useful in stepmode
+	# print ('Answer: ', [point for point in answer.points])
+	return answer
+
+# this will be used in other applications (looking at logs or tests)
+# returns if the answer was correct or not
+def parseAnswer(problem, stepList):
+	# print(problem.solution, stepList)
+	# NOTE the last point is the one examined by the system
+
+	### only useful in step mode
+	# print('parrseAnswer', stepList)
+	###
+
+	answer = findAnswer(stepList)
+	if answer.points:
+		answerPoint = [answer.points[-1].x, answer.points[-1].y]
+
+	else:
+		# print('parsing incorrect - missing point')
+		parseIncorrect(stepList, problem, answer)
+		return False
+
+	if problem.solution.points:
+		solutionPoint = [problem.solution.points[-1].x, problem.solution.points[-1].y]
+
+		# print (answerPoint, solutionPoint)
+		if answerPoint == solutionPoint:
+			# correct answer
+			# print('parsing correct')
+			parseCorrect(stepList, problem)
+			return True
+		else:
+			# print('parsing incorrect')
+			parseIncorrect(stepList, problem, answer)
+			return False
+
+def setQuiet(isQuiet):
+	global quiet
+	if isQuiet:
+		quiet = True
+	else:
+		quiet = False
 
 def getProfile():
 	# DEBUG
@@ -121,6 +190,7 @@ def getProfile():
 		return p
 	else:
 		p = Profile()
+		# print(p)
 		return p
 
 def getSystemState():
@@ -152,9 +222,9 @@ def parseEfficiency(stepList, problem, isCorrect):
 		return
 
 	stepListLength = len(stepList)
-	if isCorrect and (problem.solution.x == 0 or problem.solution.y == 0):
+	if isCorrect and (problem.solution.points[0].x == 0 or problem.solution.points[0].y == 0):
 		# 1 dimensional problem
-		if problem.solution.x != 0:
+		if problem.solution.points[0].x != 0:
 			if stepListLength == 2:
 				return 1
 			elif stepListLength == 3 and stepList[0].name == 'turnAngle':
@@ -230,7 +300,9 @@ def parseError(problem, answer):
 	# TODO check if point has been plotted
 	if len(answer.points) == 0:
 		# forgot to plot point
-		print('forgot point')
+		# print('forgot point')
+		# TODO figure things to do here!
+		return
 
 	isProbOneDimensional = checkOneDimensional(problem)
 	isAnsOnedimensional = checkAnsOneDimensional(answer)
@@ -258,7 +330,6 @@ def parseError(problem, answer):
 		profile = getProfile()
 		distance = parseOffByN(problem, answer)
 		profile.ErrorTracking['offByCount'] += 1
-
 		if profile.ErrorTracking['offByNx'] == 0:
 			profile.ErrorTracking['offByNx'] = distance[0]
 		else:
@@ -335,10 +406,9 @@ def parseOffByN(problem, answer):
 	if px == ax and py == ay:
 		return difference
 	else:
-		difference = [0,0]
 		difference[0] = px - ax
 		difference[1] = py - ay
-
+	# print(difference)
 	return difference
 
 def checkOneDimensional(problem):
@@ -361,13 +431,13 @@ def checkAnsOneDimensional(answer):
 		return False
 
 def parseCorrect(stepList, problem):
-	getProfile().attempts += 1
-	getProfile().correctProb += 1
+	getProfile().ErrorTracking['attempts'] += 1
+	getProfile().ErrorTracking['correctProb'] += 1
 	if parseEfficiency(stepList, problem, True) == 1:
 		getProfile().ErrorTracking['efficientCorrect'] += 1
 	else:
 		getProfile().ErrorTracking['inefficientCorrect'] += 1
-	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile.ErrorTracking['lastProblem'] != -1):
+	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile().ErrorTracking['lastProblem'] != -1):
 		getProfile().ErrorTracking['problems'] += 1
 	getProfile().ErrorTracking['lastProblem'] = problem.id
 	stepLength = len(stepList)
@@ -394,7 +464,7 @@ def parseIncorrect(stepList, problem, answer):
 	else:
 		getProfile().ErrorTracking['inefficientIncorrect'] += 1
 
-	if (getProfile().ErrorTracking['lastProblem']!= problem.id and getProfile.ErrorTracking['lastProblem'] != -1):
+	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile().ErrorTracking['lastProblem'] != -1):
 		getProfile().ErrorTracking['problems'] += 1
 	getProfile().ErrorTracking['lastProblem'] = problem.id
 	errorType = parseError(problem, answer)

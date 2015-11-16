@@ -1,0 +1,54 @@
+{ "test":
+		{"module": "LearnerProfile",
+			"function": "parseAnswer"},
+	"problem" : {
+		"id": 1,
+		"lines":[],
+		"name": "test problem",
+		"points": [],
+		"prompts": [],
+		"text": [],
+		"solution":{
+			"lines":[],
+			"points":[{
+				"name":"P1",
+				"x": 3,
+				"y": 4
+				}]
+		}
+	},
+	"stepList":[{
+		"label":"Move 3",
+		"name":"moveDistance",
+		"op":{
+			"distance":3
+		}
+	},
+	{
+		"label":"Turn 90",
+		"name":"turnAngle",
+		"op":{
+			"angle":90
+		}
+	},
+	{
+		"label":"Move 4",
+		"name":"moveDistance",
+		"op":{
+			"distance": 4
+		}
+	},
+	{
+		"label": "Plot point",
+		"name":"plotPoint",
+		"op":{
+		}
+	}],
+	"answer":{
+
+	},
+	"test-expected":{
+		"correctProb": 1
+	},
+	"test-name": "Correct detection"
+}
