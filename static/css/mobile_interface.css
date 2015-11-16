@@ -3,12 +3,12 @@ h1, h2, h3, h4, h5, h6, p, blockquote, pre,
 a, abbr, acronym, address, big, cite, code,
 del, dfn, em, img, ins, kbd, q, s, samp,
 small, strike, strong, sub, sup, tt, var,
-b, u, i, center, 
+b, u, i, center,
 dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
 menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
 	margin: 0;
@@ -19,7 +19,7 @@ time, mark, audio, video {
 	vertical-align: baseline;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
+article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
 	display: block;
 }
@@ -167,6 +167,7 @@ a.action-button > span {
 
 #current-problem-wrapper {
 	background: -webkit-gradient(linear, left bottom, left top, from(#773F5F), to(#b05b8c));
+	background: -moz-linear-gradient(top, #b05b8c, #773f5f);
 	color: white;
 	padding-right: 60px;
 	border-bottom: solid 1px #b05b8c;
@@ -197,6 +198,7 @@ a.action-button > span {
 			border-bottom: solid 1px #c2659b;
 			box-shadow: 0 0 0 1px #333;
 			background: url(../images/Check-128.png) center center, -webkit-gradient(linear, left bottom, left top, from(#693754), to(#964e77));
+			background: url(../images/Check-128.png) center center, -moz-linear-gradient(bottom, #693754, #964e77);
 			background-size: 32px 32px;
 		}
 
@@ -277,7 +279,7 @@ a.action-button > span {
 	#steps-wrapper > h3 {
 		height: 33px;
 		line-height: 33px;
-		
+
 	}
 
 	#steps-wrapper > h3#steps-list-title { /* Steps list title */
@@ -291,7 +293,7 @@ a.action-button > span {
 			border-radius: 3px;
 			line-height: 22px;
 			padding: 0 5px;
-			color: #eeeeee;	
+			color: #eeeeee;
 			visibility: hidden;
 		}
 
@@ -371,7 +373,7 @@ a.action-button > span {
 		height: 10px;
 	}
 
-	#steps-list > li:last-child, 
+	#steps-list > li:last-child,
 	#steps-list > li:first-child {
 		background: none;
 	}
@@ -499,7 +501,7 @@ a.action-button > span {
 	font-size: 1.4em;
 	display: none;
 }
-	
+
 	#emoticon #MessageEntry {
 		background: #E5E4EA;
 		border-top: solid 1px #CCC;
@@ -695,7 +697,7 @@ a.action-button > span {
 		width: 100%;
 		background: url(../images/delete-icon.png) top center no-repeat !important;
 		background-size: 16px;
-	} 
+	}
 
 .ui-state-hover {
 	background: none !important;

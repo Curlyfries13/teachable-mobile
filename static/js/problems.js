@@ -41,6 +41,7 @@ function refreshProblem(message, executeSteps) {
         APP.currentStepsList = [];
         updateStepsListInDB();
         updateCurrentProcedureStepsList();
+        updateProfileProblemStatus(APP.currentProblem)
 
         //check if it is time to deliver a cognitive prompt
         callCheckForCognitivePrompt();
@@ -90,6 +91,7 @@ function setCurrentProblem() {
         alert("All problems have been solved!");
         APP.currentProblemIndex = 0;
         APP.currentProblem = APP.PROBLEMS[APP.currentProblemIndex];
+        updateProfileProblemStatus(APP.currentProblem);
     }
 
     //This adds the problem heading in the top banner.
@@ -146,6 +148,7 @@ function nextProblem() {
         if((APP.currentProblemIndex) < APP.PROBLEMS.length) {
             log("",{"type":"change prob","parameter":APP.currentProblemIndex + 2,"initial":PREVIOUS_GEOGEBRA_STATE, "final":CURRENT_GEOGEBRA_STATE, "problem number" : APP.currentProblemIndex + 2,
                 "problem desc" : APP.PROBLEMS[APP.currentProblemIndex + 1].text, "problem id" : APP.PROBLEMS[APP.currentProblemIndex + 1].id});
+                updateProfileProblemStatus(APP.PROBLEMS[APP.currentProblemIndex + 1])
         }
     }
 }

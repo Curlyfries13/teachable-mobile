@@ -5,20 +5,20 @@ SPRITES MAP
 EYES
 
 closed { background-position: -320px 0px; }
-neutral{ background-position: 0 0; width: 640px; height: 480px; } 
-angry{ background-position: -641px 0; width: 320px; height: 480px; } 
-sad{ background-position: -962px 0; width: 320px; height: 480px; } 
+neutral{ background-position: 0 0; width: 640px; height: 480px; }
+angry{ background-position: -641px 0; width: 320px; height: 480px; }
+sad{ background-position: -962px 0; width: 320px; height: 480px; }
 
 MOUTH
 
-happy{ background-position: 0 0; width: 320px; height: 480px; } 
-happy-open{ background-position: -321px 0; width: 320px; height: 480px; } 
-happy-teeth{ background-position: -642px 0; width: 320px; height: 480px; } 
-neutral-open{ background-position: -963px 0; width: 320px; height: 480px; } 
-neutral{ background-position: -1284px 0; width: 320px; height: 480px; } 
-round-open{ background-position: -1605px 0; width: 320px; height: 480px; } 
-mouth-sad{ background-position: -1926px 0; width: 320px; height: 480px; } 
-angry-teeth{ background-position: -2247px 0; width: 320px; height: 480px; } 
+happy{ background-position: 0 0; width: 320px; height: 480px; }
+happy-open{ background-position: -321px 0; width: 320px; height: 480px; }
+happy-teeth{ background-position: -642px 0; width: 320px; height: 480px; }
+neutral-open{ background-position: -963px 0; width: 320px; height: 480px; }
+neutral{ background-position: -1284px 0; width: 320px; height: 480px; }
+round-open{ background-position: -1605px 0; width: 320px; height: 480px; }
+mouth-sad{ background-position: -1926px 0; width: 320px; height: 480px; }
+angry-teeth{ background-position: -2247px 0; width: 320px; height: 480px; }
 
 */
 
@@ -54,7 +54,7 @@ body {
 }
 
 #mouth {
-	background: url(../images/robotui/mouth.png) no-repeat;	
+	background: url(../images/robotui/mouth.png) no-repeat;
 	height: 480px;
 	width: 320px;
 }
@@ -109,7 +109,7 @@ body {
 }
 
 #record.dismiss {
-	background-image: url(../images/dismiss.png);	
+	background-image: url(../images/dismiss.png);
 }
 
 .frown #eyes { background-position: -320px 0px; }
@@ -171,7 +171,7 @@ body {
 
 @-webkit-keyframes neutral-blink {
 	0% {
-		background-position: 0px 0px;		
+		background-position: 0px 0px;
 	}
 
 	50% {
@@ -179,7 +179,7 @@ body {
 	}
 
 	52% {
-		background-position: 0px 0px;		
+		background-position: 0px 0px;
 	}
 
 	93% {
@@ -187,7 +187,7 @@ body {
 	}
 
 	95% {
-		background-position: 0px 0px;		
+		background-position: 0px 0px;
 	}
 
 	97% {
@@ -197,7 +197,7 @@ body {
 	99% {
 		background-position: 0px 0px;
 	}
-} 
+}
 
 @-webkit-keyframes angry-blink {
 	0% {
@@ -227,7 +227,7 @@ body {
 	99% {
 		background-position: -641px 0; width: 320px; height: 480px;
 	}
-} 
+}
 
 @-webkit-keyframes sad-blink {
 	0% {
@@ -257,7 +257,7 @@ body {
 	99% {
 		background-position: -962px 0; width: 320px; height: 480px;
 	}
-} 
+}
 
 @-webkit-keyframes talking {
 	0% {

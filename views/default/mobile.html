@@ -50,7 +50,8 @@
         	APP.DISMISS_PROMPT = "{{=URL('mobileinterface','robot','dismiss_cognitive')}}";
         	APP.DISMISS_ATTRIBUTION = "{{=URL('mobileinterface','robot','dismiss_attribution')}}";
         	APP.LEARNER_PROFILE_UPDATE = "{{=URL('mobileinterface', 'learnerprofile','update_profile')}}";
-        	//APP.LEARNER_PROFILE_
+        	APP.LEARNER_PROFILE_STATUS_UPDATE = "{{=URL('mobileinterface', 'learnerprofile', 'update_problem_status')}}"
+					APP.LEARNER_PROFILE_ACTION_UPDATE = "{{=URL('mobileinterface', 'learnerprofile', 'update_action_status')}}"
 
 
         	// Adding problems variable to global variable
@@ -69,13 +70,13 @@
         	hardcoded_problems = hardcoded_problems.replace(/&#x27;/g, "'");
         	APP.PROBLEMS = JSON.parse(hardcoded_problems);
 */
-        	
+
         	//Storing the cartesian plane status in a global variable
         	var GEOGEBRA_STATUS_STRING = "GEOGEBRA_STATUS_STRING_SS";
         	APP.GEOGEBRA_STATUS_STRING = "APP_GEOGEBRA_STATUS_STRING";
 			var CURRENT_GEOGEBRA_STATE = GEOGEBRA_STATUS_STRING;
 			var PREVIOUS_GEOGEBRA_STATE = "";
-			
+
         	// APP.init();
 
         	// APP.PROBLEMS = JSON.parse(problems); // TODO use better encoding mechanism
@@ -112,8 +113,8 @@
 			    async: false
 			});
         	// alert(TEST_SESSION_JSON);
-        	
-        	
+
+
         	//Printing the headers
         	// log("Date/Time, Type, Parameter, Initial State, Final State, Problem Number, Problem Description, Problem id, Subject id, Tester Name, Condition Name", {"firstPrint":true});
 
@@ -137,10 +138,10 @@
 		    		var incoming = JSON.parse(unescape(e.data));
 
 		    		// alert(jQuery.getJSON("../session/current_session").responseText);
-		    		
+
 		    		//!!! Dont put in '#', it messes up the log function. The log message is not pushed to log.csv.
 					console.dir("incoming packet : " + JSON.stringify(incoming));
-							
+
 
 		      		if(incoming) {
 		      			// Reset to a particular problem number.
@@ -151,7 +152,7 @@
 				      	}
 				      	else if(incoming.type == "check")
 				      	{
-				      		if(APP.ATTRIBUTION_TRIGGERED == false && APP.COGNITIVE_PROMPT_TRIGGERED == false) 
+				      		if(APP.ATTRIBUTION_TRIGGERED == false && APP.COGNITIVE_PROMPT_TRIGGERED == false)
 				      		{
 			      		 		if(incoming.status) {
 				      		 		AUDIO.loadSound("correct-solution");
@@ -175,7 +176,7 @@
 			      		else if(incoming.type == "log") {
 			      			GEOGEBRA_STATUS_STRING = incoming.data.data.geo_status.string;
 			      			APP.GEOGEBRA_STATUS_STRING = incoming.data.data.geo_status.string;
-			      			
+
 			      			console.dir(JSON.stringify(incoming));
 
 			      			CURRENT_GEOGEBRA_STATE = incoming.data.data.final;
@@ -192,7 +193,7 @@
 			      			APP.COGNITIVE_PROMPT_TRIGGERED = true;
 		      			     window.setTimeout(function(){
 					           openPromptResponseScreen();
-					         }, 3000);	
+					         }, 3000);
 			      		}
 			      		// else if(incoming.type == "robot_request") {
 			      			// console.dir("Robot requested memory objects.");
@@ -212,7 +213,7 @@
 				      		}
 			      		}
 			      		else {
-			      			if(APP.ATTRIBUTION_TRIGGERED == false && APP.COGNITIVE_PROMPT_TRIGGERED == false) 
+			      			if(APP.ATTRIBUTION_TRIGGERED == false && APP.COGNITIVE_PROMPT_TRIGGERED == false)
 				      		{
 				      			// Old messages. They do not have a type. But they should. TODO
 				      			try {
@@ -254,13 +255,13 @@
         </script>
 	</head>
 	<!-- onload function hides mobile Safari's address bar -->
-	<body> <!--onload="setTimeout(function(){window.scrollTo(0,1)}, 100);"--> 
+	<body> <!--onload="setTimeout(function(){window.scrollTo(0,1)}, 100);"-->
 		<div id="current-problem-wrapper" class="wrapper">
 			<h3>
 				<!-- Current problem text, set in script.js's function setCurrentProblem -->
 			</h3>
-			
-			
+
+
 			<a id="check-solution-button" href="#" class="action-button">
 				<span></span>
 			</a>
@@ -311,9 +312,9 @@
 						<option value="other">Other</option>
 					</select>
 					<label id="param-num-label">
-						Number of parameters: 
+						Number of parameters:
 						<span>
-							<span id="param-num-counter">0</span> 
+							<span id="param-num-counter">0</span>
 							<span id="increment-param-num">+</span>
 							<span id="decrement-param-num">-</span>
 						<span>
@@ -349,21 +350,21 @@
 		<div id="prompt">
 			<div id="rec">REC</div>
 			<span>
-				
+
 			</span>
 			<a href="#">Next</a>
 		</div>
 
 		<div id="feedback">
 			<div id="tmp"></div>
-			
+
 			<img id="responseImageHolder" src="" />
 
 			<br/>
 			<br/>
-			
+
 			<span>
-				
+
 			</span>
 
 			<a href="#" id="feedback-ok">OK</a>
@@ -372,7 +373,7 @@
 		<div id="emoticon">
 			<h2>Quinn</h2>
 		</div>
-		
+
 		<div id="manual-click" style="{{= 'display: block;' if 'click' in request.vars.keys() else 'display: none;'}}">
 			<a href="#" id="manual-click-btn">Click</a>
 		</div>
@@ -380,6 +381,6 @@
 		<audio src="{{=URL('static','audio/alert.m4a')}}" id="audio-attention" type="audio/m4a" preload="auto" ></audio>
 		<audio src="{{=URL('static','audio/buzz.m4a')}}" id="wrong-solution" type = "audio/m4a" preload="auto" ></audio>
 		<audio src="{{=URL('static','audio/badadum.m4a')}}" id="correct-solution" type = "audio/wav" preload="auto"></audio>
-		
+
 	</body>
 </html>

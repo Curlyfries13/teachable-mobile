@@ -133,7 +133,7 @@ function selectCurrentStep(event) {
     var parameters = {};
     var parametersArray = []
     $.each(labels, function(index, value) {
-        var paramName = getCamelCaseParameterName(value.innerText);
+        var paramName = getCamelCaseParameterName(value.textContent);
         var paramValue = $("input#" + paramName, form).val();
         parameters[paramName] = paramValue;
         parametersArray.push(paramValue);
@@ -147,7 +147,7 @@ function selectCurrentStep(event) {
         // creating label
         label = APP.basicProcedures[procName].label;
         label = String.prototype.format.apply(label, parametersArray);
-        
+
         // Updating hidden field
         returnObject = {name: procName, label: label, op: parameters};
         $("#procedure_parameters").val(JSON.stringify(returnObject));
@@ -167,7 +167,7 @@ function selectCurrentStep(event) {
         insertNewStep($("#steps-list .droppable:last"), $("#current-step").html());
 
         // log("Student selected step " + label , {"source":"ipod"});
-        
+
         // Logging selected action
         // log("Select Current Step " + JSON.stringify(APP.currentStep), {"source" : "ipod"});
     }
@@ -200,10 +200,10 @@ function getPlainParameterName(name){
         var isNum = isNumber(name.charAt(i));
         var isFirstNumber = !previousIsNum && isNum;
         var isUpperCase = !isNum && name.charAt(i).toUpperCase() === name.charAt(i);
-        
+
         if(isFirstNumber || isUpperCase){
             // If this is a number, set the previous flag as true
-            if(isNumber(name.charAt(i))){ 
+            if(isNumber(name.charAt(i))){
                 previousIsNum = true;
             } else {
                 previousIsNum = false;
@@ -232,7 +232,7 @@ function getCamelCaseParameterName(name){
 function validateInput(form, labels, procName, parameters){
     /*
      * Validation is performed based on the procedure's name.
-     * Ideally, it would be done based on each parameter's 
+     * Ideally, it would be done based on each parameter's
      * data types. Currently, parameters do not have data type.
      */
     // procName = getPlainParameterName(procName);
@@ -273,7 +273,7 @@ function validateInput(form, labels, procName, parameters){
         }
         if(!isPoint(parameters['pointName2'])){
             toggleError($(labels[1]), "color", "red", "black");
-            isValid = false;   
+            isValid = false;
         }
         return isValid;
     } else if(procName === 'turnCardinal'){
@@ -293,7 +293,7 @@ function validateInput(form, labels, procName, parameters){
  */
 function executeStep(event) {
     // log("Student selected 'Execute All Steps'",{"source":"ipod"});
-    
+
     //Doing this since executeStep is also called when we reset via problem header. For that case, don't need to log this function.
     if(event) {
         // var initialStateOnLoadString  = calculateInitialStateOnLoad();
@@ -306,7 +306,7 @@ function executeStep(event) {
     var grabMode = false;
     for(var i in APP.currentStepsList){
         var step = APP.currentStepsList[i];
-        switch(step.name){ 
+        switch(step.name){
             case "movePoint":         // Fall through
             case "movePointDistance":
                 grabMode = true;
