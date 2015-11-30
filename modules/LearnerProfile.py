@@ -2,64 +2,112 @@
 # given data, the model will update
 # written by: Jon Yocky
 
-# TODO: names should probably be named a little better/more consistently
-
 import sys
 import json
 import re
 import SimulationObjects as Sim
 import time
+import datetime
+from collections import OrderedDict
+
+p = None
+timeStamp = None
+quiet = False
 
 class Profile:
-
 	def __init__(self):
-		print('Initiating learner profile')
-		# these probabilistic factors will be used to model the subject
-		# start all measures at 0 (we don't know how the student will behave yet)
-		self.ErrorTracking = {
-			"xFirst": 0,
-			"yFirst": 0,
+		self.problems = []
+		self.currentProblem = -1
+		self.average = ProblemStats()
 
-			"inefficientCorrect": 0,
-			"efficientCorrect": 0,
-			"efficientIncorrect": 0,
-			"inefficientIncorrect" : 0,
+	def updateAverage(self):
+		self.average.reset()
+		for problem in self.problems:
+			self.average.errorTracking['correctProb'] += problem.errorTracking['correctProb']
+			self.average.errorTracking['attempts'] += problem.errorTracking['attempts']
 
-			"movesReverse": 0,
-			"rotatesReverse": 0,
+			self.average.errorTracking['offByNx'] = (problem.errorTracking['offByNx'] + self.average.errorTracking['offByNx'])/2
+			self.average.errorTracking['offByNy'] = (problem.errorTracking['offByNy'] + self.average.errorTracking['offByNy'])/2
+			self.average.errorTracking['offByCount'] += problem.errorTracking['offByCount']
+			self.average.errorTracking['sumError'] += problem.errorTracking['sumError']
+			self.average.errorTracking['ignoreX'] += problem.errorTracking['ignoreX']
+			self.average.errorTracking['ignoreY'] += problem.errorTracking['ignoreY']
+			self.average.errorTracking['flippingError'] += problem.errorTracking['flippingError']
+			self.average.errorTracking['noPlot'] += problem.errorTracking['noPlot']
 
-			"correctProb": 0,
-			"problems": 0,
-			"attempts": 0,
+			self.average.behaviors['xFirst'] += problem.behaviors['xFirst']
+			self.average.behaviors['yFirst'] += problem.behaviors['yFirst']
+			self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
+			self.average.behaviors['efficientCorrect'] += problem.behaviors['efficientCorrect']
+			self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
+			self.average.behaviors['efficientIncorrect'] += problem.behaviors['efficientIncorrect']
+			self.average.behaviors['movesReverse'] += problem.behaviors['movesReverse']
+			self.average.behaviors['rotatesReverse'] += problem.behaviors['rotatesReverse']
+			self.average.behaviors['wandering'] += problem.behaviors['wandering']
 
-			"offByNx": 0,
-			"offByNy": 0,
-			"offByCount": 0,
-			"sumError": 0,
-			"ignoreX": 0,
-			"ignoreY": 0,
-			"flippingError": 0,
-			"wandering": 0,
-			"lastProblem": -1
-		}
+	def reset(self):
+		global quiet
+		if not quiet:
+			print('Dumping Profile\'s problem tracking')
+
+	def getProblemStats(self, problemId):
+		for problem in self.problems:
+			if problem.problemId == problemId:
+				return problem
+		problemStats = ProblemStats(problemId)
+		self.problems.append(problemStats)
+		print(self.problems[-1].problemId, problemId)
+		print(len(self.problems) + 0.0)
+		return self.problems[-1]
 
 	def __str__(self):
 		string = []
-		for key in self.ErrorTracking:
-			string.append(str(key))
-			string.append(': ')
-			string.append(str(self.ErrorTracking[key]))
+		for problem in self.problems:
+			string.append(str(problem))
 			string.append('\n')
 		return ''.join(string)
 
+class ProblemStats:
+
+	def __init__(self, pId=-1):
+		# print('Initiating learner profile')
+		# these probabilistic factors will be used to model the subject's approach
+		# start all measures at 0 (we don't know how the student will behave yet)
+		errorTrackingKeys = { 'correctProb':0, 'attempts':0, 'offByNx':0, 'offByNy':0, 'offByCount':0, 'sumError':0,
+		'ignoreX':0, 'ignoreY':0, 'flippingError':0, 'noPlot':0 }
+		behaviorKeys = { 'xFirst':0, 'yFirst':0, 'inefficientIncorrect':0, 'efficientCorrect':0, 'efficientIncorrect':0,
+		'inefficientCorrect':0, 'movesReverse':0, 'rotatesReverse':0, 'wandering':0 }
+
+		self.problemId = pId
+		self.timeStamp = 0
+		self.errorTracking = OrderedDict(sorted(errorTrackingKeys.items(), key=lambda t: t[0]))
+		self.behaviors = OrderedDict(sorted(behaviorKeys.items(), key=lambda t: t[0]))
+
+	def __str__(self):
+		string = []
+		string.append('-Problem Id: ')
+		string.append(str(self.problemId) + '\n')
+		string.append('-ErrorTracking\n')
+		for key in self.errorTracking:
+			string.append(key + ': ')
+			string.append(str(self.errorTracking[key]))
+			string.append('\n')
+		string.append('-Behaviors\n')
+		for key in self.behaviors:
+			string.append(key + ': ')
+			string.append(str(self.behaviors[key]))
+			string.append('\n')
+		return ''.join(string)
+
+	def __repr__(self):
+		return str(self)
+
 	def reset(self):
-		for element in self.ErrorTracking:
-			self.ErrorTracking[element] = 0
-
+		for element in self.errorTracking:
+			self.errorTracking[element] = 0
+		for element in self.behaviors:
+			self.behaviors[element] = 0
 		self.lastProblem = -1
-
-p = None
-quiet = False
 
 # this is used when we call from the webpagge
 def parseStepList(stepList, problem):
@@ -73,7 +121,6 @@ def parseStepList(stepList, problem):
 		# TODO: not a helpful message
 		print('Error!')
 
-
 def findAnswer(stepList):
 	location = [0,0]
 	orientation = 0
@@ -83,11 +130,10 @@ def findAnswer(stepList):
 	# print(stepList, len(stepList))
 	stepMax = len(stepList)
 	for index, step in enumerate(stepList):
-		if index+1 < stepMax:
+		if (index+1) < stepMax:
 			if step.problemId != stepList[index+1].problemId:
 				if step.label == stepList[index+1].label and step.name == stepList[index+1].name:
 					stepList.remove(step)
-	# print('filtered ', stepList)
 
 	for index, step in enumerate(stepList):
 		### Useful for stepping ###
@@ -193,14 +239,6 @@ def getProfile():
 		# print(p)
 		return p
 
-def getSystemState():
-	global s
-	if s != None:
-		return s
-	else:
-		s = SystemState()
-		return s
-
 def getValues():
 	return json.dumps((p,s))
 
@@ -208,15 +246,6 @@ def parseEfficiency(stepList, problem, isCorrect):
 	# expects a stepList, problem, and boolean
 	# stepList is a list with elements of the following format {name, label, op{}}
 	# problem is a problem object in the folloing format
-	'''
-	problemObject{
-		lines, name, points, problemType, solution{
-			lines, points, text, type
-		}
-	}
-
-	problemObject.solution.points {name, x, y}
-	'''
 	if(problem.text == 'Learning to use TAG'):
 		# skip this analysis
 		return
@@ -299,8 +328,7 @@ def parseError(problem, answer):
 
 	# TODO check if point has been plotted
 	if len(answer.points) == 0:
-		# forgot to plot point
-		# print('forgot point')
+		getProfile().getProblemStats(problem.id).errorTracking['noPlot'] += 1
 		# TODO figure things to do here!
 		return
 
@@ -309,7 +337,7 @@ def parseError(problem, answer):
 	if(isAnsOnedimensional and isProbOneDimensional):
 		# both solutions are 1D
 		if isFlipping(problem, answer):
-			getProfile().ErrorTracking['flippingError'] += 1
+			getProfile().getProblemStats(problem.id).errorTracking['flippingError'] += 1
 	elif(isProbOneDimensional):
 		# odd case
 		# print('resolved')
@@ -319,9 +347,9 @@ def parseError(problem, answer):
 		if isSumming(problem, answer):
 			# resolved
 			# print('summing')
-			getProfile().ErrorTracking['sumError'] += 1
+			getProfile().getProblemStats(problem.id).errorTracking['sumError'] += 1
 		elif isFlipping(problem, answer):
-			getProfile.ErrorTracking['flippingError'] += 1
+			getProfile.getProblemStats(problem.id).errorTracking['flippingError'] += 1
 		elif parseIgnore(problem, answer):
 			# resolved
 			# print('ignoring')
@@ -329,16 +357,16 @@ def parseError(problem, answer):
 	else:
 		profile = getProfile()
 		distance = parseOffByN(problem, answer)
-		profile.ErrorTracking['offByCount'] += 1
-		if profile.ErrorTracking['offByNx'] == 0:
-			profile.ErrorTracking['offByNx'] = distance[0]
+		profile.getProblemStats(problem.id).errorTracking['offByCount'] += 1
+		if profile.getProblemStats(problem.id).errorTracking['offByNx'] == 0:
+			profile.getProblemStats(problem.id).errorTracking['offByNx'] = distance[0]
 		else:
-			profile.ErrorTracking['offByNx'] = (distance[0] + profile.ErrorTracking['offByNx'])/2
+			profile.getProblemStats(problem.id).errorTracking['offByNx'] = (distance[0] + profile.getProblemStats(problem.id).errorTracking['offByNx'])/2
 
-		if profile.ErrorTracking['offByNy'] == 0:
-			profile.ErrorTracking['offByNy'] = distance[1]
+		if profile.getProblemStats(problem.id).errorTracking['offByNy'] == 0:
+			profile.getProblemStats(problem.id).errorTracking['offByNy'] = distance[1]
 		else:
-			profile.ErrorTracking['offByNy'] = (distance[1] + profile.ErrorTracking['offByNy'])/2
+			profile.getProblemStats(problem.id).errorTracking['offByNy'] = (distance[1] + profile.getProblemStats(problem.id).errorTracking['offByNy'])/2
 		# print(profile.offByNx,profile.offByNy)
 
 def isSumming(problem, answer):
@@ -353,7 +381,6 @@ def isSumming(problem, answer):
 
 	if ax in possibleAnswers or ay in possibleAnswers:
 		return True
-
 	return False
 
 def parseIgnore(problem, answer):
@@ -365,11 +392,11 @@ def parseIgnore(problem, answer):
 	py = problem.solution.points[0].y
 
 	if px == ax and py != ay and ay == 0:
-		getProfile().ErrorTracking['ignoreY'] += 1
+		getProfile().getProblemStats(problem.id).errorTracking['ignoreY'] += 1
 		return True
 
 	if py == ay and px != ax and ax == 0:
-		getProfile().ErrorTracking['ignoreX'] += 1
+		getProfile().getProblemStats(problem.id).errorTracking['ignoreX'] += 1
 		return True
 
 	return False
@@ -431,15 +458,15 @@ def checkAnsOneDimensional(answer):
 		return False
 
 def parseCorrect(stepList, problem):
-	getProfile().ErrorTracking['attempts'] += 1
-	getProfile().ErrorTracking['correctProb'] += 1
+	global timeStamp
+	getProfile().getProblemStats(problem.id).timeStamp = timeStamp
+	getProfile().getProblemStats(problem.id).errorTracking['attempts'] += 1
+	getProfile().getProblemStats(problem.id).errorTracking['correctProb'] += 1
 	if parseEfficiency(stepList, problem, True) == 1:
-		getProfile().ErrorTracking['efficientCorrect'] += 1
+		getProfile().getProblemStats(problem.id).behaviors['efficientCorrect'] += 1
 	else:
-		getProfile().ErrorTracking['inefficientCorrect'] += 1
-	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile().ErrorTracking['lastProblem'] != -1):
-		getProfile().ErrorTracking['problems'] += 1
-	getProfile().ErrorTracking['lastProblem'] = problem.id
+		getProfile().getProblemStats(problem.id).behaviors['inefficientCorrect'] += 1
+	getProfile().currentProblem = problem.id
 	stepLength = len(stepList)
 	problemContainsNeg = False
 	movedReverse = False
@@ -452,22 +479,24 @@ def parseCorrect(stepList, problem):
 	for step in stepList:
 		# check for moving in reverse
 		if step.name == 'moveDistance' and step.op.distance < 0 and problemContainsNeg:
-			getProfile().ErrorTracking['movesReverse'] += 1
+			getProfile().getProblemStats(problem.id).behaviors['movesReverse'] += 1
 			movedReverse = True
 		elif movedReverse and problemContainsNeg:
-			getProfile().ErrorTracking['rotatesReverse'] += 1
+			getProfile().getProblemStats(problem.id).behaviors['rotatesReverse'] += 1
 
 def parseIncorrect(stepList, problem, answer):
-	getProfile().ErrorTracking['attempts'] += 1
+	getProfile().getProblemStats(problem.id).errorTracking['attempts'] += 1
 	if parseEfficiency(stepList, problem, False) == 1:
-		getProfile().ErrorTracking['efficientIncorrect'] += 1
+		getProfile().getProblemStats(problem.id).behaviors['efficientIncorrect'] += 1
 	else:
-		getProfile().ErrorTracking['inefficientIncorrect'] += 1
+		getProfile().getProblemStats(problem.id).behaviors['inefficientIncorrect'] += 1
 
-	if (getProfile().ErrorTracking['lastProblem'] != problem.id and getProfile().ErrorTracking['lastProblem'] != -1):
-		getProfile().ErrorTracking['problems'] += 1
-	getProfile().ErrorTracking['lastProblem'] = problem.id
+	getProfile().lastProblem=problem.id
 	errorType = parseError(problem, answer)
 
 def reset():
 	getProfile().reset()
+
+def updateTimeStamp(time):
+	global timeStamp
+	timeStamp = time

@@ -8,10 +8,12 @@ import argparse
 import sys
 import json
 import os
+import copy
 from abc import ABCMeta
 import LearnerProfile
 import SimulationObjects as Sim
 import LogReader
+import Grapher as Grapher
 
 def readCommands(argv):
 	parser =  argparse.ArgumentParser(description='Prepare testing apparatus')
@@ -31,17 +33,27 @@ def readCommands(argv):
 	parser.add_argument('--test_directory', '-dir',
 						default = 'tests',
 						dest = 'testRoot',
-						action = 'store')
+						action = 'store',
+						help = 'Specify the directory to look in for tests')
 	parser.add_argument('--log', '-l',
 						dest = 'logFiles',
-						nargs = '+')
+						nargs = '+',
+						help = 'Specify the logfile to simulate (may require -dir to be specified)')
+	parser.add_argument('--graph', '-g',
+						nargs='?',
+						dest = 'graphName',
+						action = 'store',
+						metavar='xyz.png',
+						help = 'Specifies the name of the graph to produce')
 	options = parser.parse_args()
 	return options
 
 quiet = False
+graph = None
+graphFlag = False
 
 class Tester:
-	def __init__(self, numTests = 0, testNames = [], testRoot = '/tests'):
+	def __init__(self, numTests = 0, testNames = [], testRoot = '/tests', graph = False):
 		global quiet
 		if not quiet:
 			print('---------Initializing Tester---------')
@@ -49,7 +61,7 @@ class Tester:
 		self.passedTests = 0
 		self.testNames = testNames
 		self.profile = LearnerProfile.getProfile()
-		self.profile.setQuiet(quiet)
+		LearnerProfile.setQuiet(quiet)
 
 	def runTest(self, testRoot='/tests', testName=""):
 		global quiet
@@ -86,6 +98,7 @@ class Tester:
 					if not quiet:
 						print('Engaging module...')
 					LearnerProfile.parseError(testProblem, testAnswer)
+
 				elif test['test']['function'] == 'parseAnswer':
 					testSolution = test['problem']['solution']
 					testAnswer = test['answer']
@@ -103,7 +116,7 @@ class Tester:
 					LearnerProfile.parseAnswer(testProblem,stepList)
 
 			for expected in test['test-expected']:
-				if test['test-expected'][expected] == self.profile.ErrorTracking[expected]:
+				if test['test-expected'][expected] == self.profile.getProblemStats(1).errorTracking[expected]:
 					print("+ " + test['test-name'] + " passed!")
 				else:
 					if not failed:
@@ -122,14 +135,23 @@ class Tester:
 		return failed
 
 def logSim(logName, fileDirectory):
-	stepLists = LogReader.readLog(logName,fileDirectory)
+	global quiet, graphFlag
+	if quiet:
+		LearnerProfile.setQuiet(quiet)
+
+	stepLists = LogReader.readLog(logName, fileDirectory)
 	profile = LearnerProfile.getProfile()
+
+	if graphFlag:
+		profiles = []
+		graphCount = 0
+
 	profile.reset()
-	user = ''
+	user = stepLists[0][2]
 	stepListStore = []
 	stepList = []
 	# stepList pair is a tuple containing
-	# {problem, stepList, user, correct, line}
+	# {problem, stepList, user, correct, line, timeStamp}
 
 	for stepListPair in stepLists:
 		# print('stepListPair:', stepListPair[1])
@@ -137,12 +159,17 @@ def logSim(logName, fileDirectory):
 		if not user == stepListPair[2]:
 			print(user+'\'s Profile:')
 			# new session detected
+			print(profile.average)
 			user = stepListPair[2]
-			print(profile)
-			profile.reset()
+
+			if graphFlag:
+				profiles.append((copy.deepcopy(profile), stepListPair[5]))
 			stepListStore = []
-		elif not int(stepListPair[0].id) == 540:
-			# construct the new steplist with the old(only if we haven't)
+			profile.reset()
+
+		# we don't look at problem 540, it's just a trial problem with no answer
+		if not int(stepListPair[0].id) == 540:
+			# construct the new steplist with the old (only if we haven't)
 			if not stepListStore:
 				stepList = stepListPair[1]
 				stepListStore = stepList
@@ -153,6 +180,7 @@ def logSim(logName, fileDirectory):
 				# print('apended', stepListStore, stepListPair[1], '\n to ', stepList)
 				stepListStore = stepList
 
+			LearnerProfile.updateTimeStamp(stepListPair[5])
 			correct = LearnerProfile.parseAnswer(stepListPair[0], stepList)
 			if correct is not stepListPair[3]:
 				print('~~~answer did not match up with log data~~~')
@@ -162,17 +190,36 @@ def logSim(logName, fileDirectory):
 				# empty the stepLsit to match the log state
 				stepListStore = []
 
+			if graphFlag:
+				profile.updateAverage()
+				profiles.append((copy.deepcopy(profile), stepListPair[5]))
+
+	profile.updateAverage()
 	print(user+'\'s Profile:')
-	print(profile)
+	print(profile.average)
+
+	if graphFlag:
+		profile.updateAverage()
+		profiles.append((copy.deepcopy(profile), stepListPair[5]))
+		Grapher.Graph(profiles, name=graphName, number=graphCount, title=user)
+		graphCount += 1
+
 
 if __name__ == '__main__':
 	options = readCommands(sys.argv)
 	print(options)
-	global quiet
+	global quiet, graphName, graphFlag
 	quiet = options.isQuiet
+	graphFlag = False
+
+	if options.graphName:
+		graphName = options.graphName
+		graphFlag = True
+
 	if options.logFiles:
 		for log in options.logFiles:
 			logSim(log,options.testRoot)
+
 	if options.names:
 		tester = Tester(len(options.names), options.names)
 		failed = tester.runTest(options.testRoot, options.names[0])

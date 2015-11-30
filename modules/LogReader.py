@@ -5,9 +5,10 @@ import re
 import sys
 import os
 import csv
+import datetime
 import SimulationObjects as Sim
 
-def readLog(fileName, fileDirectory):
+def readLog(fileName, fileDirectory, graphFlag=False):
 	# return a list of stepLists
 	filePath = None
 	if fileDirectory:
@@ -18,6 +19,7 @@ def readLog(fileName, fileDirectory):
 	with open(filePath, 'r') as log:
 		pointPattern = re.compile(r'\((?P<x>-{0,1}?[0-9]+), (?P<y>-{0,1}?[0-9]+)\)')
 		deletePattern = re.compile(r'\'label\':\'(?P<label>.*)\'')
+		timeStampPattern = re.compile(r'(?P<month>[0-9]{1,2})/(?P<day>[0-9]{1,2})/(?P<year>[0-9]{4}) - (?P<hour>[0-9]{1,2}):(?P<minute>[0-9]{1,2}):(?P<second>[0-9]{1,2})')
 
 		user = ''
 		logReader = csv.reader(log)
@@ -32,8 +34,8 @@ def readLog(fileName, fileDirectory):
 				# print(currentProblem, row[7], line)
 				if 'prompt' in row or 'attribution' in row or 'checked emotions' in row:
 					continue
-				if row[9] != user:
-					user = row[9]
+				if row[8] != user:
+					user = row[8]
 
 				# META STEP
 
@@ -102,6 +104,8 @@ def readLog(fileName, fileDirectory):
 						correct = False
 					probId = row[7]
 					problemString = row[6]
+					timeStampMatch = timeStampPattern.search(row[0])
+					timeStamp = datetime.datetime(year=int(timeStampMatch.group('year')), month=int(timeStampMatch.group('month')), day=int(timeStampMatch.group('day')), hour=int(timeStampMatch.group('hour')), minute=int(timeStampMatch.group('minute')), second = int(timeStampMatch.group('second')))
 					# print(probId, problemString)
 					match = pointPattern.search(problemString)
 					# print(match)
@@ -115,7 +119,7 @@ def readLog(fileName, fileDirectory):
 					solution = Sim.Solution([], [point])
 					problem = Sim.Problem(probId=probId,solution=solution)
 					# print('Added step list, problem tuple')
-					StepLists.append((problem,list(currentStepList),user,correct,line))
+					StepLists.append((problem,list(currentStepList),user,correct,line,timeStamp))
 					currentStepList = []
 					currentProblem = -1
 		# print(len(StepLists))
