@@ -2,7 +2,7 @@
 		{"module": "LearnerProfile",
 			"function": "parseError"},
 	"problem" : {
-			"id": 0,
+			"id": 1,
 			"lines": [],
 			"name": "test problem",
 			"points": [],

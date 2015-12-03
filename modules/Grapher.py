@@ -50,9 +50,8 @@ def Graph(data, number, name='graph', title=''):
 	# plot the problem statistics
 	problemCount = len(data[-1][0].problems) + 0.0
 	metricCount = len(data[-1][0].problems[0].errorTracking) + 0.0
-	barWidth = BAR_RANGE / ((metricCount + CHUNK_DISPLACE) * problemCount)
+	barWidth = BAR_RANGE / ((metricCount + CHUNK_DISPLACE) * problemCount * 1.0)
 	groupWidth = (barWidth*metricCount + barWidth*CHUNK_DISPLACE)
-	barWidth = BAR_RANGE / (groupWidth*problemCount)
 
 	# print(problemCount,metricCount)
 	plt.figure(figsize=(12,9))

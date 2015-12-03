@@ -56,8 +56,8 @@ class Profile:
 				return problem
 		problemStats = ProblemStats(problemId)
 		self.problems.append(problemStats)
-		print(self.problems[-1].problemId, problemId)
-		print(len(self.problems) + 0.0)
+		# print(self.problems[-1].problemId, problemId)
+		# print(len(self.problems) + 0.0)
 		return self.problems[-1]
 
 	def __str__(self):
@@ -125,7 +125,9 @@ def findAnswer(stepList):
 	location = [0,0]
 	orientation = 0
 	points = []
+	provisionalPoint = None
 	answer = Sim.Answer([],[])
+	provisionalAnswer = Sim.Answer([],[])
 	deleteTarget = re.compile(r'(?P<move>Move)|(?P<turn>Turn) (?P<mag>[0-9]*)')
 	# print(stepList, len(stepList))
 	stepMax = len(stepList)
@@ -134,6 +136,7 @@ def findAnswer(stepList):
 			if step.problemId != stepList[index+1].problemId:
 				if step.label == stepList[index+1].label and step.name == stepList[index+1].name:
 					stepList.remove(step)
+					stepMax -= 1
 
 	for index, step in enumerate(stepList):
 		### Useful for stepping ###
@@ -177,8 +180,11 @@ def findAnswer(stepList):
 		elif step.name == 'plotPoint':
 			points.append(location)
 
-	answer.lines = []
 	pointCounter = 1
+	if len(points) == 0:
+		provisionalPoint = Sim.Point('P' + str(pointCounter), location[0], location[1])
+		provisionalAnswer.points.append(provisionalPoint)
+	answer.lines = []
 	for point in points:
 		newPoint = Sim.Point('P' + str(pointCounter),point[0], point[1])
 		answer.points.append(newPoint)
@@ -186,7 +192,7 @@ def findAnswer(stepList):
 
 	### only useful in stepmode
 	# print ('Answer: ', [point for point in answer.points])
-	return answer
+	return { answer, provisionalAnswer }
 
 # this will be used in other applications (looking at logs or tests)
 # returns if the answer was correct or not
@@ -198,13 +204,13 @@ def parseAnswer(problem, stepList):
 	# print('parrseAnswer', stepList)
 	###
 
-	answer = findAnswer(stepList)
+	provisionalAnswer, answer = findAnswer(stepList)
 	if answer.points:
 		answerPoint = [answer.points[-1].x, answer.points[-1].y]
 
 	else:
 		# print('parsing incorrect - missing point')
-		parseIncorrect(stepList, problem, answer)
+		parseIncorrect(stepList, problem, answer, provisionalAnswer)
 		return False
 
 	if problem.solution.points:
@@ -218,7 +224,7 @@ def parseAnswer(problem, stepList):
 			return True
 		else:
 			# print('parsing incorrect')
-			parseIncorrect(stepList, problem, answer)
+			parseIncorrect(stepList, problem, answer, provisionalAnswer)
 			return False
 
 def setQuiet(isQuiet):
@@ -324,13 +330,14 @@ def parseEfficiency(stepList, problem, isCorrect):
 			# or the system is inefficient.
 			return 0
 
-def parseError(problem, answer):
+def parseError(problem, answer, provisionalAnswer):
 
-	# TODO check if point has been plotted
 	if len(answer.points) == 0:
 		getProfile().getProblemStats(problem.id).errorTracking['noPlot'] += 1
-		# TODO figure things to do here!
-		return
+		# Just analyze as if there is an answer is here, provided by the provisional asnwer
+		answer = provisionalAnswer
+		print(answer, provisionalAnswer)
+		# return
 
 	isProbOneDimensional = checkOneDimensional(problem)
 	isAnsOnedimensional = checkAnsOneDimensional(answer)
@@ -484,7 +491,7 @@ def parseCorrect(stepList, problem):
 		elif movedReverse and problemContainsNeg:
 			getProfile().getProblemStats(problem.id).behaviors['rotatesReverse'] += 1
 
-def parseIncorrect(stepList, problem, answer):
+def parseIncorrect(stepList, problem, answer, provisionalAnswer):
 	getProfile().getProblemStats(problem.id).errorTracking['attempts'] += 1
 	if parseEfficiency(stepList, problem, False) == 1:
 		getProfile().getProblemStats(problem.id).behaviors['efficientIncorrect'] += 1
@@ -492,7 +499,7 @@ def parseIncorrect(stepList, problem, answer):
 		getProfile().getProblemStats(problem.id).behaviors['inefficientIncorrect'] += 1
 
 	getProfile().lastProblem=problem.id
-	errorType = parseError(problem, answer)
+	errorType = parseError(problem, answer, provisionalAnswer)
 
 def reset():
 	getProfile().reset()
