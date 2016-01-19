@@ -8,6 +8,7 @@ import argparse
 import sys
 import json
 import os
+import glob
 import copy
 from abc import ABCMeta
 import LearnerProfile
@@ -139,6 +140,9 @@ def logSim(logName, fileDirectory):
 	if quiet:
 		LearnerProfile.setQuiet(quiet)
 
+	if logName == 'all':
+		return allSim(fileDirectory)
+
 	stepLists = LogReader.readLog(logName, fileDirectory)
 	profile = LearnerProfile.getProfile()
 
@@ -147,68 +151,177 @@ def logSim(logName, fileDirectory):
 		graphCount = 0
 
 	profile.reset()
-	user = stepLists[0][2]
+	user = stepLists[0]['user']
 	stepListStore = []
 	stepList = []
-	# stepList pair is a tuple containing
-	# {problem, stepList, user, correct, line, timeStamp}
+	# stepListDict is a dictionary containing
+	# {problem, stepList, user, correct, line, timeStamp, statesList}
 
-	for stepListPair in stepLists:
-		# print('stepListPair:', stepListPair[1])
-		# print('ID -- ',stepListPair[0].id)
-		if not user == stepListPair[2]:
-			print(user+'\'s Profile:')
-			# new session detected
+	for stepListDict in stepLists:
+		if not user == stepListDict['user']:
+			profile.updateAverage()
+			print(user+'\'s Profile Average:')
 			print(profile.average)
-			user = stepListPair[2]
+			print(user+'\'s Profile:\n')
+			print(profile)
+			user = stepListDict['user']
 
 			if graphFlag:
-				profiles.append((copy.deepcopy(profile), stepListPair[5]))
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
 			stepListStore = []
 			profile.reset()
 
 		# we don't look at problem 540, it's just a trial problem with no answer
-		if not int(stepListPair[0].id) == 540:
+		if not int(stepListDict['problem'].id) == 540:
 			# construct the new steplist with the old (only if we haven't)
 			if not stepListStore:
-				stepList = stepListPair[1]
+				stepList = stepListDict['stepList']
 				stepListStore = stepList
 			else:
 				# we've stored the stepList, we should just append the list
-				stepList = stepListStore + stepListPair[1]
+				stepList = stepListStore + stepListDict['stepList']
 				# verbose
-				# print('apended', stepListStore, stepListPair[1], '\n to ', stepList)
+				# print('a[pended', stepListStore, stepListDict['stepList'], '\n to ', stepList)
 				stepListStore = stepList
 
-			LearnerProfile.updateTimeStamp(stepListPair[5])
-			correct = LearnerProfile.parseAnswer(stepListPair[0], stepList)
-			if correct is not stepListPair[3]:
+			LearnerProfile.updateTimeStamp(stepListDict['timeStamp'])
+			correct, answer = LearnerProfile.parseAnswer(stepListDict['problem'], stepList)
+			if correct is not stepListDict['correct']:
 				print('~~~answer did not match up with log data~~~')
-				print('StepList: ', stepList, 'Problem: ', stepListPair[0], 'line: ', stepListPair[4])
+				print('StepList: ', stepList, 'Problem: ', stepListDict['problem'], answer, 'line: ', stepListDict['line'])
 
-			if stepListPair[3]:
+			if stepListDict['correct']:
 				# empty the stepLsit to match the log state
 				stepListStore = []
 
 			if graphFlag:
 				profile.updateAverage()
-				profiles.append((copy.deepcopy(profile), stepListPair[5]))
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
 
 	profile.updateAverage()
-	print(user+'\'s Profile:')
+	print(user+'\'s Profile Average:')
 	print(profile.average)
+	print(user+'\'s Profile:\n')
+	print(profile)
 
 	if graphFlag:
 		profile.updateAverage()
-		profiles.append((copy.deepcopy(profile), stepListPair[5]))
+		profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
 		Grapher.Graph(profiles, name=graphName, number=graphCount, title=user)
 		graphCount += 1
 
+# Perform slightly different analysis
+# This analysis will perform lateral analysis on problems to figure out the
+# common pitfalls
+def allSim(fileDirectory):
+	global quiet, graphFlag
+	if quiet:
+		LearnerProfile.setQuiet(quiet)
+
+	stepLists = []
+	# expect a tuple of (profile, timestamp, isFinal)
+	profiles = []
+
+	os.chdir(fileDirectory)
+	logNames = os.listdir()
+	os.chdir('..')
+	for log in logNames:
+		stepLists.append(LogReader.readLog(log, fileDirectory))
+
+	profile = LearnerProfile.getProfile()
+
+	if graphFlag:
+		graphCount = 0
+
+	profile.reset()
+	user = stepLists[0][0]['user']
+
+	profile.setID(user)
+	stepListStore = []
+	stepList = []
+	os.chdir('test_results')
+	result = open(user+'.txt', 'w+')
+	for group in stepLists:
+		for stepListDict in group:
+			if not user == stepListDict['user']:
+				result.write(user+'\'s Profile average:\n')
+				result.write(str(profile.average))
+				result.write(user+'\'s Profile:\n')
+				result.write(str(profile))
+				user = stepListDict['user']
+
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
+				stepListStore = []
+				result.close()
+				result = open(user+'.txt', 'w+')
+				profile.reset()
+				profile.setID(user)
+
+			# dont look at 540 - it's just a trial
+			if not int(stepListDict['problem'].id) == 540:
+				if not stepListStore:
+					stepList = stepListDict['stepList']
+					stepListStore = stepList
+				else:
+					stepList = stepListStore + stepListDict['stepList']
+					# verbose
+					# preint('appended', stepListStore, stepListDict['stepList'], '\n to ', stepList)
+					StepListStore = stepList
+				LearnerProfile.updateTimeStamp(stepListDict['timeStamp'])
+				correct, answer = LearnerProfile.parseAnswer(stepListDict['problem'], stepList)
+
+				if correct is not stepListDict['correct']:
+					print('Mismatch! -', user)
+					result.write('~~~answer did not match up with log data~~~\n')
+					result.write('StepList: ' + str(stepList) + 'Problem: ' + str(stepListDict['problem'])+ ' =?= ' + str(answer) + 'line: ' + str(stepListDict['line']) + '\n')
+
+				if stepListDict['correct']:
+					stepListStore = []
+
+				if graphFlag:
+					profile.updateAverage()
+					profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], False))
+
+	profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
+	profile.updateAverage()
+	result.write(user+'\'s Profile Average:\n')
+	result.write(str(profile.average))
+	result.write(user+'\'s Profile:\n')
+	result.write(str(profile))
+	result.close()
+
+
+	# perform lateral analysis on Problems
+
+	# get final states of profiles from profile, timestamp, isFinal tuple
+	finalProfiles = []
+	for profile in profiles:
+		if profile[2]:
+			finalProfiles.append(profile[0])
+
+	problemAnalysis = {}
+	for profile in finalProfiles:
+		for problem in profile.problems:
+			if problem.problemId in problemAnalysis:
+				problemAnalysis[problem.problemId] = problemAnalysis[problem.problemId] + problem
+			else:
+				problemAnalysis[problem.problemId] = problem
+
+	analysisFile = open('problemAnalysis.txt', 'w+')
+	for key in problemAnalysis:
+		analysisFile.write(key+ ' analysis\n')
+		analysisFile.write(str(problemAnalysis[key])+'\n')
+	analysisFile.close()
+	os.chdir('..')
+
+	if graphFlag:
+		Grapher.allGraph(finalProfiles, problemAnalysis, profiles)
 
 if __name__ == '__main__':
 	options = readCommands(sys.argv)
 	print(options)
-	global quiet, graphName, graphFlag
+	global quiet, graphName, graphFlag, clean
+	clean = True
 	quiet = options.isQuiet
 	graphFlag = False
 

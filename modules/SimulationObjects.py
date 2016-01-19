@@ -45,13 +45,14 @@ class Point:
 		return(str(self))
 
 class Step:
-	def __init__(self,label,name,op,problemId=0):
+	def __init__(self,label,name,op,problemId=0,state=None):
 		self.label = label
 		self.name = name
 		# print(op)
 		self.op = op
 		# to detect a specific bug
 		self.problemId = problemId
+		self.state = state
 
 	def __str__(self):
 		string = []
@@ -77,3 +78,7 @@ class Answer:
 	def __init__(self,lines,points):
 		self.lines = lines,
 		self.points = points
+	def __str__(self):
+		return str(self.points)
+	def __repr__(self):
+		return str(self)
