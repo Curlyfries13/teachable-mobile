@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import datetime
 import os
 from collections import OrderedDict
@@ -189,30 +190,28 @@ def allGraph(profiles, problemAnalysis, rawProfiles):
 
 
 		problemCount = len(profile.problems)
-		groupSize = len(PLOT_ORDER) * barWidth + CHUNK_DISPLACE
+		groupSize = len(PLOT_ORDER)*barWidth + CHUNK_DISPLACE
+		tickPlacement = np.arange(CHUNK_DISPLACE + groupSize *.5, CHUNK_DISPLACE + groupSize*.5 + groupSize*problemCount, groupSize)
+		tickLabels = map(lambda x: str(x.problemId), profile.problems)
 
 		plt.figure(figsize=(12,9))
+		plt.autoscale(enable=True, axis='y', tight=False)
 
 		ax = plt.subplot(211)
-
-		ax.set_xticklabels([])
 		stat_legend = OrderedDict()
 
 		for i, stat in enumerate(profileOffByDataX):
-			stat_legend[stat[0]] = ax.bar(CHUNK_DISPLACE + (int(stat[2]) - 541) * groupSize + PLOT_ORDER.index(stat[0]) * barWidth, profileOffByDataY[i][1], width=barWidth, color=tableau20[PLOT_ORDER.index(stat[0])])
-			print('problem: ', stat[2], 'offset: ', str(CHUNK_DISPLACE + (int(stat[2]) - 541)* groupSize +PLOT_ORDER.index(stat[0]) * barWidth))
+			stat_legend[stat[0]] = ax.bar(CHUNK_DISPLACE + (int(stat[2]) - 541)*groupSize + PLOT_ORDER.index(stat[0]) * barWidth, profileOffByDataY[i][1], width=barWidth, color=tableau20[PLOT_ORDER.index(stat[0])])
+			#print('problem: ', stat[2], 'offset: ', str(CHUNK_DISPLACE + (int(stat[2]) - 541)* groupSize +PLOT_ORDER.index(stat[0]) * barWidth))
 
 		y_range = plt.axis()[3] - plt.axis()[2]
 		y_min = plt.axis()[2]
 		y_offset = float(y_min - (.1 * y_range))
 
-		for i in range(0 ,problemCount):
-			ax.text(CHUNK_DISPLACE + (.5 * groupSize) + (groupSize * i), y_offset, str(541+i), color='k', fontsize=12, multialignment='right')
-			print('TEXT-problem: ', (str(541+i)), ':', str(CHUNK_DISPLACE + (.5 * groupSize) + (groupSize * i)))
-
 		# expand plot
 		x_range = plt.axis()[1] - plt.axis()[0]
 		x_max = plt.axis()[1]
+		plt.xticks(tickPlacement, tickLabels)
 		plt.xlim(xmax = x_max + x_range*.25)
 
 		# create legend
@@ -227,8 +226,11 @@ def allGraph(profiles, problemAnalysis, rawProfiles):
 
 		problemCount = len(profile.problems)
 		groupSize = len(OTHER_ORDER) * barWidth + CHUNK_DISPLACE
+		tickPlacement = np.arange(CHUNK_DISPLACE + groupSize *.5, CHUNK_DISPLACE + groupSize*.5 + groupSize*problemCount, groupSize)
+		tickLabels = map(lambda x: str(x.problemId), profile.problems)
 
 		plt.figure(figsize=(12,9))
+		plt.autoscale(enable=True, axis='y', tight=False)
 
 		ax = plt.subplot(211)
 
@@ -239,14 +241,11 @@ def allGraph(profiles, problemAnalysis, rawProfiles):
 		for i, stat in enumerate(profileOtherDataX):
 			stat_legend[stat[0]] = ax.bar(CHUNK_DISPLACE + OTHER_ORDER.index(stat[0]) + groupSize * (int(stat[2]) - 540), profileOtherDataY[i][1], width = barWidth, color = tableau20[OTHER_ORDER.index(stat[0])])
 
+		plt.xticks(tickPlacement, tickLabels)
 		plt.legend(list(stat_legend.values()), list(stat_legend.keys()))
 		y_range = plt.axis()[3] - plt.axis()[2]
 		y_min = plt.axis()[2]
 		y_offset = float(y_min - (.1 * y_range))
-
-		# label groups
-		for i in range(0, problemCount):
-			ax.text(CHUNK_DISPLACE + ((.5) * groupSize) + groupSize * i, y_offset, str(541+i), color='k', fontsize=12, multialignment = 'center')
 
 		# expand plot
 		x_range = plt.axis()[1] - plt.axis()[0]
