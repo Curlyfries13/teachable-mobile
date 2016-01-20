@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import datetime
 import os
@@ -145,7 +146,7 @@ def allGraph(profiles, problemAnalysis, rawProfiles):
 
 		ax.get_yaxis().tick_left()
 
-		plt.xticks(fontsize=14)
+		plt.xticks(visible=False)
 		plt.yticks(fontsize=14)
 
 		for index, error in enumerate(problem.errorTracking.items()):
@@ -157,6 +158,32 @@ def allGraph(profiles, problemAnalysis, rawProfiles):
 			ax.text(len(problem.errorTracking)+2, float((ymax)-(ymax-ymin)*.03*i), metric, color=tableau20[i], fontsize = 14)
 		plt.savefig(''.join(problemId+'analysis.png'))
 		plt.close()
+
+		# create behavior graph
+		plt.figure(figsize=(12,9))
+		ax= plt.subplot(111)
+
+		ax.spines['top'].set_visible(False)
+		ax.spines['right'].set_visible(False)
+
+		ax.get_yaxis().tick_left()
+
+		plt.yticks(fontsize=14)
+		plt.xticks(visible=False)
+
+		ydata = problem.behaviors.values()
+		bars = ax.bar(range(0,len(ydata)), ydata, color=tableau20, width=barWidth)
+		plt.title( problemId + ' behavior Analysis', fontsize=24, color='k')
+
+		x_range = plt.axis()[1] - plt.axis()[0]
+		x_max = plt.axis()[1]
+		plt.xlim(xmax = x_max + x_range*.3)
+
+		plt.legend(bars, list(problem.behaviors.keys()))
+
+		plt.savefig(''.join(problemId+'behaviors.png'))
+		plt.close()
+
 		print('Problem ', problemId, ' analysis completed')
 	os.chdir('..')
 	# now create profile graphs
