@@ -34,6 +34,7 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 		problem = None
 		currentState = []
 		lastRowTS = None
+		condition = ''
 
 		for line, row in enumerate(logReader):
 			if len(row) == 11:
@@ -41,9 +42,12 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 				if 'prompt' in row or 'attribution' in row or 'checked emotions' in row:
 					continue
 				stateMatch = currentStatePattern.search(row[3])
-
+				if row[10]:
+					# get the session condition
+					condition = row[10]
 				# the state tuple is as follows:
 				# x position, y position, last point x, last point y
+
 				if stateMatch:
 					if stateMatch.group('px') and stateMatch.group('py'):
 						currentState = (float(stateMatch.group('x')), float(stateMatch.group('y')), int(stateMatch.group('rot')), float(stateMatch.group('px')), float(stateMatch.group('py')))
@@ -131,7 +135,7 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 						point = Sim.Point('P1', 0, 0)
 					solution = Sim.Solution([], [point])
 					problem = Sim.Problem(probId=probId, solution=solution)
-					StepLists.append( {'problem':problem, 'stepList':list(currentStepList), 'user':user, 'correct':correct, 'line':line, 'timeStamp':timeStamp} )
+					StepLists.append( {'problem':problem, 'stepList':list(currentStepList), 'user':user, 'correct':correct, 'line':line, 'timeStamp':timeStamp, 'condition':condition} )
 					currentStepList = []
 					stateList = []
 					currentProblem = -1

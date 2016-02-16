@@ -235,14 +235,16 @@ def allSim(fileDirectory):
 
 	profile.reset()
 	user = stepLists[0][0]['user']
-
+	condition = stepLists[0][0]['condition']
 	profile.setID(user)
 	stepListStore = []
 	stepList = []
 	os.chdir('test_results')
-	result = open(user+'.txt', 'w+')
+	result = open(user + '_' + condition + '.txt', 'w+')
+
 	for group in stepLists:
 		for stepListDict in group:
+			profile.cleanup()
 			if not user == stepListDict['user']:
 				result.write(user+'\'s Profile average:\n')
 				result.write(str(profile.average))
@@ -253,7 +255,7 @@ def allSim(fileDirectory):
 				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
 				stepListStore = []
 				result.close()
-				result = open(user+'.txt', 'w+')
+				result = open(user + '_' + condition + '.txt', 'w+')
 				profile.reset()
 				profile.setID(user)
 
@@ -268,6 +270,7 @@ def allSim(fileDirectory):
 					# preint('appended', stepListStore, stepListDict['stepList'], '\n to ', stepList)
 					StepListStore = stepList
 				LearnerProfile.updateTimeStamp(stepListDict['timeStamp'])
+				profile.setCondition(stepListDict['condition'])
 				correct, answer = LearnerProfile.parseAnswer(stepListDict['problem'], stepList)
 
 				if correct is not stepListDict['correct']:
@@ -284,6 +287,7 @@ def allSim(fileDirectory):
 
 	profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
 	profile.updateAverage()
+	profile.cleanup()
 	result.write(user+'\'s Profile Average:\n')
 	result.write(str(profile.average))
 	result.write(user+'\'s Profile:\n')
@@ -300,22 +304,36 @@ def allSim(fileDirectory):
 			finalProfiles.append(profile[0])
 
 	problemAnalysis = {}
+	conditionAnalysis = {}
 	for profile in finalProfiles:
 		for problem in profile.problems:
 			if problem.problemId in problemAnalysis:
 				problemAnalysis[problem.problemId] = problemAnalysis[problem.problemId] + problem
 			else:
 				problemAnalysis[problem.problemId] = problem
+			if profile.condition in conditionAnalysis:
+				if problem.problemId in conditionAnalysis[profile.condition]:
+					conditionAnalysis[profile.condition][problem.problemId] = conditionAnalysis[profile.condition][problem.problemId] + problem
+				else:
+					conditionAnalysis[profile.condition][problem.problemId] = problem
+			else:
+				conditionAnalysis[profile.condition] = {}
+				conditionAnalysis[profile.condition][problem.problemId] = problem
 
 	analysisFile = open('problemAnalysis.txt', 'w+')
 	for key in problemAnalysis:
 		analysisFile.write(key+ ' analysis\n')
 		analysisFile.write(str(problemAnalysis[key])+'\n')
 	analysisFile.close()
+	analysisFile = open('conditionAnalysis.txt', 'w+')
+	for key in conditionAnalysis:
+		analysisFile.write(key+' analysis\n')
+		analysisFile.write(str(conditionAnalysis[key])+'\n')
+	analysisFile.close()
 	os.chdir('..')
 
 	if graphFlag:
-		Grapher.allGraph(finalProfiles, problemAnalysis, profiles)
+		Grapher.allGraph(finalProfiles, problemAnalysis, conditionAnalysis, profiles)
 
 if __name__ == '__main__':
 	options = readCommands(sys.argv)

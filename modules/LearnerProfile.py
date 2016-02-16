@@ -22,6 +22,7 @@ class Profile:
 		self.currentProblem = -1
 		self.average = ProblemStats()
 		self.subjectID = subjectID
+		self.condition = ''
 
 	def updateAverage(self):
 		self.average.reset()
@@ -66,6 +67,14 @@ class Profile:
 	def setID(self, subjectID):
 		self.subjectID = subjectID
 
+	def setCondition(self, condition):
+		self.condition = condition
+
+	def cleanup(self):
+		for problem in self.problems:
+			if problem.errorTracking['attempts'] == 0:
+				self.problems.remove(problem)
+
 	def __str__(self):
 		string = []
 		string.append(self.subjectID + '\n')
@@ -74,6 +83,9 @@ class Profile:
 			string.append(str(problem))
 			string.append('\n')
 		return ''.join(string)
+
+	def __repr__(self):
+		return str(self)
 
 class ProblemStats:
 
@@ -87,7 +99,7 @@ class ProblemStats:
 		# off by n closer to the origin is negative, farther is positive.
 		errorTrackingKeys = { 'correctProb':0, 'attempts':0, 'offByNx':0,
 		'offByNy':0, 'offByNxMag':0, 'offByNyMag':0, 'offByNxChir':0,
-		'offByNyChir':0, 'offByCount':0, 'sumError':0,
+		'offByNyChir':0, 'invertX':0, 'invertY':0, 'offByCount':0, 'sumError':0,
 		'ignoreX':0, 'ignoreY':0, 'flippingError':0, 'noPlot':0 }
 		behaviorKeys = { 'xFirst':0, 'yFirst':0, 'inefficientIncorrect':0,
 		'efficientCorrect':0, 'efficientIncorrect':0,
@@ -165,7 +177,7 @@ def findAnswer(stepList):
 	provisionalPoint = None
 	answer = Sim.Answer([],[])
 	provisionalAnswer = Sim.Answer([],[])
-	deleteTarget = re.compile(r'(?P<move>Move)|(?P<turn>Turn) (?P<mag>[0-9]*)')
+	# deleteTarget = re.compile(r'(?P<move>Move)|(?P<turn>Turn) (?P<mag>[0-9]*)')
 	stepMax = len(stepList)
 
 	for index, step in enumerate(stepList):
@@ -433,12 +445,20 @@ def parseError(problem, answer, provisionalAnswer):
 			# resolved
 			# print('summing')
 			getProfile().getProblemStats(problem.id).errorTracking['sumError'] += 1
-		elif isFlipping(problem, answer):
-			getProfile.getProblemStats(problem.id).errorTracking['flippingError'] += 1
-		elif parseIgnore(problem, answer):
-			# resolved
-			# print('ignoring')
-			pass
+
+	elif isFlipping(problem, answer):
+		getProfile().getProblemStats(problem.id).errorTracking['flippingError'] += 1
+
+	elif isInvertingX(problem, answer) or isInvertingY(problem, answer):
+		if isInvertingX(problem, answer):
+			getProfile().getProblemStats(problem.id).errorTracking['invertX'] += 1
+		if isInvertingY(problem, answer):
+			getProfile().getProblemStats(problem.id).errorTracking['invertY'] += 1
+
+	elif parseIgnore(problem, answer):
+		# resolved
+		# print('ignoring')
+		pass
 	else:
 		profile = getProfile()
 		distance = parseOffByN(problem, answer)
@@ -466,6 +486,26 @@ def isSumming(problem, answer):
 	if ax in possibleAnswers or ay in possibleAnswers:
 		return True
 	return False
+
+def isInvertingX(problem, answer):
+	ax = answer.points[0].x
+
+	px = problem.solution.points[0].x
+
+	if (-1*ax) == px:
+		return True
+	else:
+		return False
+
+def isInvertingY(problem, answer):
+	ay = answer.points[0].y
+
+	py = problem.solution.points[0].x
+
+	if (-1*ay) == py:
+		return True
+	else:
+		return False
 
 def parseIgnore(problem, answer):
 	# print('checking ignoring')
@@ -498,7 +538,7 @@ def isFlipping(problem, answer):
 	#print(ax, ay)
 	#print(px, py)
 
-	if abs(ax) == abs(py) and abs(ay) == abs(px):
+	if ax == py and ay == px:
 		# print('flipping')
 		return True
 	else:
@@ -596,7 +636,6 @@ def parseBehavior(stepList, problem):
 					return
 			elif step.name == 'turnAngle':
 				orientation = (orientation + step.op.angle) % 360
-
 
 def reset():
 	getProfile().reset()
