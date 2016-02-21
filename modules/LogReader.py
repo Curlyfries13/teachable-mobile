@@ -1,5 +1,4 @@
 # This module wil allow the tester to use log data to run tests and get profiles
-#
 
 import re
 import sys

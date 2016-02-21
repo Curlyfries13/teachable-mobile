@@ -258,6 +258,7 @@ def allSim(fileDirectory):
 				result = open(user + '_' + condition + '.txt', 'w+')
 				profile.reset()
 				profile.setID(user)
+				condition = stepListDict['condition']
 
 			# dont look at 540 - it's just a trial
 			if not int(stepListDict['problem'].id) == 540:

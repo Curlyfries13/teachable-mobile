@@ -13,3 +13,8 @@ databases/sql.log
 *.csv
 *.txt
 *.png
+modules/alt_log/p16_mod
+modules/alt_log/p17_mod
+modules/alt_log/p20_mod
+modules/alt_log/p22_mod
+modules/alt_log/p23_mod
