@@ -30,6 +30,7 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 		logReader = csv.reader(log)
 		currentStepList = []
 		StepLists = []
+		TimeStamps = []
 		problem = None
 		currentState = []
 		lastRowTS = None
@@ -40,7 +41,11 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 				# we expect the correct format hereafter
 				if 'prompt' in row or 'attribution' in row or 'checked emotions' in row:
 					continue
+
 				stateMatch = currentStatePattern.search(row[3])
+				timeStampMatch = timeStampPattern.search(row[0])
+				timeStamp = datetime.datetime(year=int(timeStampMatch.group('year')), month=int(timeStampMatch.group('month')), day=int(timeStampMatch.group('day')), hour=int(timeStampMatch.group('hour')), minute=int(timeStampMatch.group('minute')),  second = int(timeStampMatch.group('second')))
+				TimeStamps.append(timeStamp)
 				if row[10]:
 					# get the session condition
 					condition = row[10]
@@ -105,6 +110,12 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 					step = Sim.Step(label=label, name=name, op=None, state=currentState)
 					currentStepList.append(step)
 
+				elif 'Deleted step from list' in row:
+					lable = 'delete'
+					name = 'delete'
+					step = Sim.Step(label=label, name=name, op=None, state=currentState)
+					currentStepList.append(step)
+
 				elif 'Refresh' in row:
 					label = 'refresh'
 					name = 'refresh'
@@ -122,8 +133,7 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 						correct = False
 					probId = row[7]
 					problemString = row[6]
-					timeStampMatch = timeStampPattern.search(row[0])
-					timeStamp = datetime.datetime(year=int(timeStampMatch.group('year')), month=int(timeStampMatch.group('month')), day=int(timeStampMatch.group('day')), hour=int(timeStampMatch.group('hour')), minute=int(timeStampMatch.group('minute')),  second = int(timeStampMatch.group('second')))
+
 
 					match = pointPattern.search(problemString)
 					if match:
@@ -134,7 +144,8 @@ def readLog(fileName, fileDirectory, graphFlag=False):
 						point = Sim.Point('P1', 0, 0)
 					solution = Sim.Solution([], [point])
 					problem = Sim.Problem(probId=probId, solution=solution)
-					StepLists.append( {'problem':problem, 'stepList':list(currentStepList), 'user':user, 'correct':correct, 'line':line, 'timeStamp':timeStamp, 'condition':condition} )
+					StepLists.append( {'problem':problem, 'stepList':list(currentStepList), 'user':user, 'correct':correct, 'line':line, 'timeStamps':TimeStamps, 'condition':condition} )
+					TimeStamps = []
 					currentStepList = []
 					stateList = []
 					currentProblem = -1

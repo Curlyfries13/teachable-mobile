@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 import os
 from collections import OrderedDict
+import LearnerProfile
 
 def Graph(data, number, name='graph', title=''):
 
@@ -99,7 +100,7 @@ def Graph(data, number, name='graph', title=''):
 	return
 
 # graph data from all profiles: we'll need to be smart
-def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
+def allGraph(profiles, problemAnalysis, conditionAnalysis, totalConditionAnalysis, studentCount, rawProfiles, timeData):
 	print('Graphing all')
 	MAX_RANGE_OFF = 10
 	MIN_RANGE_OFF = -5
@@ -122,7 +123,7 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 
 	PLOT_ORDER = ['offByNx', 'offByNy', 'offByNxMag', 'offByNyMag', 'offByNxChir', 'offByNyChir', 'offByCount']
 	OTHER_ORDER = ['attempts', 'correctProb','sumError', 'ignoreX', 'ignoreY', 'flippingError', 'noPlot', 'offByCount', 'invertX', 'invertY']
-	LATERAL_ANALYSIS = ['correctProb', 'sumError', 'ignoreX', 'ignoreY', 'flippingError', 'noPlot', 'offByCount', 'invertX', 'invertY']
+	LATERAL_ANALYSIS = ['correctProb', 'sumError', 'ignoreX', 'ignoreY', 'flippingError', 'noPlot', 'offByCount', 'invertX', 'invertY','deleteMoves']
 
 	for i in range(len(tableau20)):
 		r, g, b = tableau20[i]
@@ -140,7 +141,13 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 	for problemId, problem in problemAnalysis.items():
 		plt.figure(figsize=(12,9))
 		plt.xlim(PRB_MIN_RANGE, len(problem.errorTracking)+2)
+		problemSum = 0
 
+		for condition in studentCount:
+			if problemId in studentCount[condition]:
+				problemSum += studentCount[condition][problemId]
+
+		# print(problemSum)
 		ax = plt.subplot(111)
 		ax.spines["top"].set_visible(False)
 		ax.spines["right"].set_visible(False)
@@ -150,29 +157,31 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		plt.xticks(visible=False)
 		plt.yticks(fontsize=14)
 
-		stat_legend = OrderedDict()
+		legend = OrderedDict()
 		attempts = problem.errorTracking['attempts']
 		correct = problem.errorTracking['correctProb']
+		incorrect = attempts - correct
+
 		if attempts == correct:
 			attempts += 1
 		for index, error in enumerate(problem.errorTracking.items()):
 			if error[0] == 'correctProb':
-				stat_legend[error] = ax.bar(index + 1, error[1]/attempts, 1, color = tableau20[index])
+				legend[('incorrect', incorrect)] = ax.bar(index + 1, incorrect/problemSum, 1, color = tableau20[index])
 			elif error[0] in LATERAL_ANALYSIS:
-				stat_legend[error] = ax.bar(index + 1, error[1]/(attempts - correct), 1, color=tableau20[index])
+				legend[error] = ax.bar(index + 1, error[1]/problemSum, 1, color=tableau20[index])
 		plt.title( problemId +' lateral Analysis', fontsize=24, color='k')
 
 		# create legend
 		# for i, metric in enumerate(problem.errorTracking):
 		# 	ax.text(len(problem.errorTracking)+2, float((ymax)-(ymax-ymin)*.03*i), metric, color=tableau20[i], fontsize = 14)
 
-		plt.legend(list(stat_legend.values()), list(stat_legend.keys()))
+		plt.legend(list(legend.values()), list(legend.keys()))
 		plt.savefig(''.join(['error_analysis/',problemId,'analysis.png']))
 		plt.close()
 
 		# create behavior graph
 		plt.figure(figsize=(12,9))
-		ax= plt.subplot(111)
+		ax = plt.subplot(111)
 
 		ax.spines['top'].set_visible(False)
 		ax.spines['right'].set_visible(False)
@@ -191,6 +200,7 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		plt.xlim(xmax = x_max + x_range*.3)
 
 		plt.legend(bars, list(problem.behaviors.keys()))
+		ax.set_ylabel('Count/sessions')
 
 		plt.savefig(''.join(['behaviors/' ,problemId, 'behaviors.png']))
 		plt.clf()
@@ -199,9 +209,29 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		print('Problem ', problemId, ' analysis completed')
 	os.chdir('..')
 
-	# create lateral condition analysis Graphs
+
+	# create lateral condition/Problem analysis Graphs
+	conditionStats = {}
+	conditionStats['total'] = {}
+	legendColor = {}
 	for condition, problems in conditionAnalysis.items():
+		conditionStats[condition] = {}
+		keys = sorted(problems.keys())
+		for index, error in enumerate(problems[keys[0]].errorTracking.items()):
+			conditionStats[condition][error[0]] = []
+			legendColor[error[0]] = index
+			if not error[0] in conditionStats[condition]:
+				conditionStats[condition][error[0]] = [0.0]*len(keys)
+
+			for index, key in enumerate(keys):
+				conditionStats[condition][error[0]].append((problems[key].errorTracking[error[0]] * 1.0)/studentCount[condition][key])
+
+
 		for problemId, problem in problems.items():
+			if condition in studentCount and problemId in studentCount[condition]:
+				userCount = studentCount[condition][problemId]
+			else:
+				continue
 			plt.figure(figsize=(12,9))
 			ax = plt.subplot(111)
 			legend = OrderedDict()
@@ -214,31 +244,103 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 			plt.yticks(fontsize=14)
 			attempts = problem.errorTracking['attempts']
 			correct = problem.errorTracking['correctProb']
+			incorrect = attempts - correct
 			# avoid divide by 0
 			if attempts == correct:
 				attempts += 1
 			for index, error in enumerate(problem.errorTracking.items()):
 				if error[0] == 'correctProb':
-					stat_legend[error] = ax.bar(index + 1, error[1]/attempts, 1, color = tableau20[index])
+					legend[('incorrect', incorrect)] = ax.bar(index + 1, incorrect/userCount, 1, color = tableau20[index])
 				elif error[0] in LATERAL_ANALYSIS:
-					legend[error] = ax.bar(index + 1, error[1]/(attempts-correct), 1, color=tableau20[index])
-			plt.title( condition + problemId +' condition Analysis', fontsize=24, color='k')
+					legend[error] = ax.bar(index + 1, error[1]/userCount, 1, color=tableau20[index])
+			plt.title(condition + problemId +' condition Analysis', fontsize=24, color='k')
 
 			plt.legend(list(legend.values()), list(legend.keys()))
-			plt.ylabel('Count')
+			plt.ylabel('Count/User Session')
+			plt.xlabel('Problem')
 			if(condition is ''):
 				condition = 'None'
 			plt.savefig(''.join(['conditionAnalysis/all/', problemId, '_', condition, '.png']))
 			plt.savefig(''.join(['conditionAnalysis/', condition, '/', problemId, '_', condition, '.png']))
 			plt.savefig(''.join(['conditionAnalysis/Problems/', problemId, '/', problemId, '_', condition, '.png']))
+			print(problemId, '/', condition, 'analysis complete')
 			plt.close()
+
+	# check conditions over all sessions
+	for condition, stats in conditionStats.items():
+		plt.figure(figsize=(12,9))
+		ax = plt.subplot(111)
+		legend = OrderedDict()
+
+		ax.spines["top"].set_visible(False)
+		ax.spines["right"].set_visible(False)
+		ax.get_yaxis().tick_left()
+
+
+		plt.yticks(fontsize=14)
+		for error, data in stats.items():
+			if error in LATERAL_ANALYSIS:
+				if error == 'correctProb':
+					incorrect = [attempts - correct for attempts, correct in zip(stats['attempts'], data)]
+					legend['incorrect'] = plt.plot(range(1, 1+len(incorrect)), incorrect, marker='.', color=tableau20[int(legendColor[error])], label='incorrect')
+				else:
+					plt.plot(range(1, 1+len(data)), data, marker='.', color=tableau20[int(legendColor[error])], label=str(error))
+
+		plt.title(condition + ' Session Analysis', fontsize=24, color='k')
+
+		plt.ylabel('Count/User Session')
+		plt.legend()
+		plt.show()
+		# plt.legend(list(legend.values()), list(legend.keys()))
+
+		if(condition is ''):
+			condition = 'None'
+		plt.savefig(''.join(['conditionAnalysis/Session/', condition, '_scatter', '.png']))
+		plt.close()
+		print(condition, 'session analysis complete')
+
+
+
+	# Create overall condition graphs - i.e. errors in all problems for all sessinos in a condition
+	for condition, data in totalConditionAnalysis.items():
+		sessionCount = studentCount[condition]['541']
+		plt.figure(figsize=(12,9))
+		ax = plt.subplot(111)
+		legend = OrderedDict()
+
+		ax.spines["top"].set_visible(False)
+		ax.spines["right"].set_visible(False)
+		ax.get_yaxis().tick_left()
+		print(data)
+		plt.xticks(visible=False)
+		plt.yticks(fontsize=14)
+		attempts = data.errorTracking['attempts']
+		correct = data.errorTracking['correctProb']
+		incorrect = attempts - correct
+		print(incorrect)
+		# avoid divide by 0
+		if attempts == correct:
+			attempts += 1
+		for index, error in enumerate(data.errorTracking.items()):
+			if error[0] == 'correctProb':
+				legend[('incorrect', incorrect)] = ax.bar(index + 1, incorrect/sessionCount, 1, color = tableau20[index])
+			elif error[0] in LATERAL_ANALYSIS:
+				legend[error] = ax.bar(index + 1, error[1]/sessionCount, 1, color=tableau20[index])
+		plt.title(condition + ' Total condition Analysis', fontsize=24, color='k')
+
+		plt.legend(list(legend.values()), list(legend.keys()))
+		plt.ylabel('Count')
+		if(condition is ''):
+			condition = 'None'
+		plt.savefig(''.join(['conditionAnalysis/Session/', condition, '_bar', '.png']))
+		plt.close()
+		print(condition, 'error graphs created')
 	# now create profile graphs
 
 	# print(profiles[0][0].problems[-1])
 	print('Problem Analysis Graphs Complete.')
 
 	# Profile analysis graphs
-
 	for profile in profiles:
 		if(len(profile.problems) == 0):
 			continue
@@ -278,7 +380,7 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		problemCount = len(profile.problems)
 		# groupSize = len(PLOT_ORDER)*barWidth + CHUNK_DISPLACE
 		# tickPlacement = np.arange(CHUNK_DISPLACE + groupSize *.5, CHUNK_DISPLACE + groupSize*.5 + groupSize*problemCount, groupSize)
-		tickLabels = map(lambda x: str(x.problemId), profile.problems)
+		tickLabels = map(lambda x: str(int(x.problemId)-540), profile.problems)
 
 		plt.figure(figsize=(12,9))
 		plt.autoscale(enable=True, axis='y', tight=False)
@@ -301,7 +403,7 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		plt.legend(list(stat_legend.values()), list(stat_legend.keys()))
 		plt.xlabel('Problem', labelpad=25)
 		plt.ylabel('Count')
-		plt.title(''.join(['subject', profile.subjectID, ' ', profile.condition , ' Errors']))
+		plt.title(''.join(['subject ', profile.subjectID, ' ', profile.condition , ' Errors']))
 
 		plt.savefig(''.join(['profileAnalysis/other/', str(profile.subjectID), '_', profile.condition, '_other']), bbox_inches='tight')
 		plt.clf()
@@ -336,7 +438,8 @@ def allGraph(profiles, problemAnalysis, conditionAnalysis, rawProfiles):
 		plt.clf()
 		plt.close()
 
-
+		# time analysis
+		timeData[profile.subjectID]
 		print('Profile ', profile.subjectID, ' completed')
 		plt.clf()
 		plt.close()

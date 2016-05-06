@@ -11,6 +11,7 @@ import os
 import glob
 import copy
 from abc import ABCMeta
+from collections import OrderedDict
 import LearnerProfile
 import SimulationObjects as Sim
 import LogReader
@@ -167,7 +168,7 @@ def logSim(logName, fileDirectory):
 			user = stepListDict['user']
 
 			if graphFlag:
-				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1]))
 			stepListStore = []
 			profile.reset()
 
@@ -184,7 +185,7 @@ def logSim(logName, fileDirectory):
 				# print('a[pended', stepListStore, stepListDict['stepList'], '\n to ', stepList)
 				stepListStore = stepList
 
-			LearnerProfile.updateTimeStamp(stepListDict['timeStamp'])
+			LearnerProfile.updateTimeStamp(stepListDict['timeStamps'][-1])
 			correct, answer = LearnerProfile.parseAnswer(stepListDict['problem'], stepList)
 			if correct is not stepListDict['correct']:
 				print('~~~answer did not match up with log data~~~')
@@ -196,7 +197,7 @@ def logSim(logName, fileDirectory):
 
 			if graphFlag:
 				profile.updateAverage()
-				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1]))
 
 	profile.updateAverage()
 	print(user+'\'s Profile Average:')
@@ -206,7 +207,7 @@ def logSim(logName, fileDirectory):
 
 	if graphFlag:
 		profile.updateAverage()
-		profiles.append((copy.deepcopy(profile), stepListDict['timeStamp']))
+		profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1]))
 		Grapher.Graph(profiles, name=graphName, number=graphCount, title=user)
 		graphCount += 1
 
@@ -225,8 +226,10 @@ def allSim(fileDirectory):
 	os.chdir(fileDirectory)
 	logNames = os.listdir()
 	os.chdir('..')
+
 	for log in logNames:
-		stepLists.append(LogReader.readLog(log, fileDirectory))
+		print(os.path.splitext(log)[0])
+		stepLists.append((LogReader.readLog(log, fileDirectory), os.path.splitext(log)[0]))
 
 	profile = LearnerProfile.getProfile()
 
@@ -234,31 +237,38 @@ def allSim(fileDirectory):
 		graphCount = 0
 
 	profile.reset()
-	user = stepLists[0][0]['user']
-	condition = stepLists[0][0]['condition']
+	user = stepLists[0][1]
+	condition = stepLists[0][0][0]['condition']
 	profile.setID(user)
 	stepListStore = []
 	stepList = []
+
 	os.chdir('test_results')
 	result = open(user + '_' + condition + '.txt', 'w+')
+	profileTimeData = {user:OrderedDict()}
 
 	for group in stepLists:
-		for stepListDict in group:
+		for stepListDict in group[0]:
 			profile.cleanup()
-			if not user == stepListDict['user']:
+
+			if not user == group[1]:
+				profile.updateAverage()
 				result.write(user+'\'s Profile average:\n')
 				result.write(str(profile.average))
 				result.write(user+'\'s Profile:\n')
 				result.write(str(profile))
-				user = stepListDict['user']
+				user = group[1]
 
-				profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
+				profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1], True))
 				stepListStore = []
 				result.close()
-				result = open(user + '_' + condition + '.txt', 'w+')
 				profile.reset()
 				profile.setID(user)
 				condition = stepListDict['condition']
+				result = open(user + '_' + condition + '.txt', 'w+')
+
+				print(user, condition)
+				profileTimeData[user] = OrderedDict()
 
 			# dont look at 540 - it's just a trial
 			if not int(stepListDict['problem'].id) == 540:
@@ -270,12 +280,16 @@ def allSim(fileDirectory):
 					# verbose
 					# preint('appended', stepListStore, stepListDict['stepList'], '\n to ', stepList)
 					StepListStore = stepList
-				LearnerProfile.updateTimeStamp(stepListDict['timeStamp'])
+				if not stepListDict['problem'].id in profileTimeData[user]:
+					profileTimeData[user][stepListDict['problem'].id] = []
+
+				LearnerProfile.updateTimeStamp(stepListDict['timeStamps'][-1])
+				profileTimeData[user][stepListDict['problem'].id].append(stepListDict['timeStamps'])
 				profile.setCondition(stepListDict['condition'])
 				correct, answer = LearnerProfile.parseAnswer(stepListDict['problem'], stepList)
 
 				if correct is not stepListDict['correct']:
-					print('Mismatch! -', user)
+					print('Mismatch! -', user, stepListDict['problem'].id)
 					result.write('~~~answer did not match up with log data~~~\n')
 					result.write('StepList: ' + str(stepList) + 'Problem: ' + str(stepListDict['problem'])+ ' =?= ' + str(answer) + 'line: ' + str(stepListDict['line']) + '\n')
 
@@ -284,9 +298,9 @@ def allSim(fileDirectory):
 
 				if graphFlag:
 					profile.updateAverage()
-					profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], False))
+					profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1], False))
 
-	profiles.append((copy.deepcopy(profile), stepListDict['timeStamp'], True))
+	profiles.append((copy.deepcopy(profile), stepListDict['timeStamps'][-1], True))
 	profile.updateAverage()
 	profile.cleanup()
 	result.write(user+'\'s Profile Average:\n')
@@ -306,12 +320,32 @@ def allSim(fileDirectory):
 
 	problemAnalysis = {}
 	conditionAnalysis = {}
+	conditionAnalysis['total'] = {}
+
+	totalConditionAnalysis = {}
+	studentCount = {}
+
+	studentCount['total'] = {}
+
 	for profile in finalProfiles:
 		for problem in profile.problems:
+			if not profile.condition in studentCount:
+				studentCount[profile.condition] = {}
+				studentCount[profile.condition][problem.problemId] = 1
+			elif not problem.problemId in studentCount[profile.condition]:
+				studentCount[profile.condition][problem.problemId] = 1
+			else:
+				studentCount[profile.condition][problem.problemId] += 1
+			if not problem.problemId in studentCount['total']:
+				studentCount['total'][problem.problemId] = 1
+			else:
+				studentCount['total'][problem.problemId] += 1
+
 			if problem.problemId in problemAnalysis:
 				problemAnalysis[problem.problemId] = problemAnalysis[problem.problemId] + problem
 			else:
 				problemAnalysis[problem.problemId] = problem
+
 			if profile.condition in conditionAnalysis:
 				if problem.problemId in conditionAnalysis[profile.condition]:
 					conditionAnalysis[profile.condition][problem.problemId] = conditionAnalysis[profile.condition][problem.problemId] + problem
@@ -320,6 +354,15 @@ def allSim(fileDirectory):
 			else:
 				conditionAnalysis[profile.condition] = {}
 				conditionAnalysis[profile.condition][problem.problemId] = problem
+			if not problem.problemId in conditionAnalysis['total']:
+				conditionAnalysis['total'][problem.problemId] = problem
+			else:
+				conditionAnalysis['total'][problem.problemId] = conditionAnalysis['total'][problem.problemId] + problem
+
+			if profile.condition in totalConditionAnalysis:
+				totalConditionAnalysis[profile.condition] = totalConditionAnalysis[profile.condition] + problem
+			else:
+				totalConditionAnalysis[profile.condition] = problem
 
 	analysisFile = open('problemAnalysis.txt', 'w+')
 	for key in problemAnalysis:
@@ -334,7 +377,7 @@ def allSim(fileDirectory):
 	os.chdir('..')
 
 	if graphFlag:
-		Grapher.allGraph(finalProfiles, problemAnalysis, conditionAnalysis, profiles)
+		Grapher.allGraph(finalProfiles, problemAnalysis, conditionAnalysis, totalConditionAnalysis, studentCount, profiles, profileTimeData)
 
 if __name__ == '__main__':
 	options = readCommands(sys.argv)
