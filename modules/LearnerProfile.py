@@ -27,27 +27,29 @@ class Profile:
 	def updateAverage(self):
 		self.average.reset()
 		for problem in self.problems:
-			self.average.errorTracking['correctProb'] += problem.errorTracking['correctProb']
-			self.average.errorTracking['attempts'] += problem.errorTracking['attempts']
-
-			self.average.errorTracking['offByNx'] = (problem.errorTracking['offByNx'] + self.average.errorTracking['offByNx'])/2
-			self.average.errorTracking['offByNy'] = (problem.errorTracking['offByNy'] + self.average.errorTracking['offByNy'])/2
-			self.average.errorTracking['offByCount'] += problem.errorTracking['offByCount']
-			self.average.errorTracking['sumError'] += problem.errorTracking['sumError']
-			self.average.errorTracking['ignoreX'] += problem.errorTracking['ignoreX']
-			self.average.errorTracking['ignoreY'] += problem.errorTracking['ignoreY']
-			self.average.errorTracking['flippingError'] += problem.errorTracking['flippingError']
-			self.average.errorTracking['noPlot'] += problem.errorTracking['noPlot']
-
-			self.average.behaviors['xFirst'] += problem.behaviors['xFirst']
-			self.average.behaviors['yFirst'] += problem.behaviors['yFirst']
-			self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
-			self.average.behaviors['efficientCorrect'] += problem.behaviors['efficientCorrect']
-			self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
-			self.average.behaviors['efficientIncorrect'] += problem.behaviors['efficientIncorrect']
-			self.average.behaviors['movesReverse'] += problem.behaviors['movesReverse']
-			self.average.behaviors['rotatesReverse'] += problem.behaviors['rotatesReverse']
-			self.average.behaviors['wandering'] += problem.behaviors['wandering']
+			for key in self.average.errorTracking:
+				self.average.errorTracking[key] += problem.errorTracking[key]
+			# self.average.errorTracking['correctProb'] += problem.errorTracking['correctProb']
+			# self.average.errorTracking['attempts'] += problem.errorTracking['attempts']
+			#
+			# self.average.errorTracking['offByNx'] = (problem.errorTracking['offByNx'] + self.average.errorTracking['offByNx'])/2
+			# self.average.errorTracking['offByNy'] = (problem.errorTracking['offByNy'] + self.average.errorTracking['offByNy'])/2
+			# self.average.errorTracking['offByCount'] += problem.errorTracking['offByCount']
+			# self.average.errorTracking['sumError'] += problem.errorTracking['sumError']
+			# self.average.errorTracking['ignoreX'] += problem.errorTracking['ignoreX']
+			# self.average.errorTracking['ignoreY'] += problem.errorTracking['ignoreY']
+			# self.average.errorTracking['flippingError'] += problem.errorTracking['flippingError']
+			# self.average.errorTracking['noPlot'] += problem.errorTracking['noPlot']
+			#
+			# self.average.behaviors['xFirst'] += problem.behaviors['xFirst']
+			# self.average.behaviors['yFirst'] += problem.behaviors['yFirst']
+			# self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
+			# self.average.behaviors['efficientCorrect'] += problem.behaviors['efficientCorrect']
+			# self.average.behaviors['inefficientCorrect'] += problem.behaviors['inefficientCorrect']
+			# self.average.behaviors['efficientIncorrect'] += problem.behaviors['efficientIncorrect']
+			# self.average.behaviors['movesReverse'] += problem.behaviors['movesReverse']
+			# self.average.behaviors['rotatesReverse'] += problem.behaviors['rotatesReverse']
+			# self.average.behaviors['wandering'] += problem.behaviors['wandering']
 
 	def reset(self):
 		global quiet
@@ -100,7 +102,7 @@ class ProblemStats:
 		errorTrackingKeys = { 'correctProb':0, 'attempts':0, 'offByNx':0,
 		'offByNy':0, 'offByNxMag':0, 'offByNyMag':0, 'offByNxChir':0,
 		'offByNyChir':0, 'invertX':0, 'invertY':0, 'offByCount':0, 'sumError':0,
-		'ignoreX':0, 'ignoreY':0, 'flippingError':0, 'noPlot':0 }
+		'ignoreX':0, 'ignoreY':0, 'flippingError':0, 'noPlot':0, 'deleteMoves':0 }
 		behaviorKeys = { 'xFirst':0, 'yFirst':0, 'inefficientIncorrect':0,
 		'efficientCorrect':0, 'efficientIncorrect':0,
 		'inefficientCorrect':0, 'movesReverse':0, 'rotatesReverse':0,
@@ -158,7 +160,7 @@ class ProblemStats:
 
 # this is used when we call from the webpagge
 def parseStepList(stepList, problem):
-	answer = findAnswer(stepList)
+	answer = findAnswer(stepList, problem)
 	print('Parsing steplist: ', [step for step in stepList])
 	if 'correct' in request.vars and reqest.vars['correct'] == 'true':
 		parseCorrect(stepList, problem)
@@ -168,7 +170,7 @@ def parseStepList(stepList, problem):
 		# TODO: not a helpful message
 		print('Error!')
 
-def findAnswer(stepList):
+def findAnswer(stepList, problem):
 	location = [0,0]
 	logLoc = [0,0]
 	orientation = 0
@@ -193,15 +195,19 @@ def findAnswer(stepList):
 		# print(location, orientation, step, index)
 
 		# try to reconcile the position given with that in the logs
+		hasState = False
 		if step.state[0] != None:
+			hasState = True
 			logLoc = [step.state[0], step.state[1]]
 			logRot = step.state[2]
 
-			if not (location == logLoc):
+			if (location != logLoc):
 				location = copy.deepcopy(logLoc)
 
-			if not orientation == logRot:
+			if orientation != logRot:
 				orientation = logRot
+		else:
+			hasState = False
 
 		#####  META STEPS #####
 		# NOTE each meta step must be deleted after it is executed;
@@ -220,6 +226,9 @@ def findAnswer(stepList):
 			#stepList.remove(step)
 			location = [0,0]
 			orientation = 0
+		elif step.name == 'delete':
+			profile = getProfile()
+			profile.getProblemStats(problem.id).errorTracking['deleteMoves'] += 1
 
 		###### TRUE STEPLIST OBJECTS ######
 		# NOTE don't delete these from the list
@@ -240,9 +249,11 @@ def findAnswer(stepList):
 			orientation = (orientation + step.op.angle) % 360
 
 		elif step.name == 'plotPoint':
-			if(logLoc != location):
-				print('Error')
-			points.append(copy.copy(location))
+			if(logLoc != location and hasState):
+				print('Error plotting point!')
+				points.append(copy.copy(logLoc))
+			else:
+				points.append(copy.copy(location))
 
 	pointCounter = 1
 	if len(points) == 0:
@@ -255,7 +266,7 @@ def findAnswer(stepList):
 		pointCounter += 1
 	### only useful in stepmode
 	# print ('Answer: ', [point for point in answer.points])
-	return answer, provisionalAnswer
+	return answer, provisionalAnswer,
 
 # this will be used in other applications (looking at logs or tests)
 # returns if the answer was correct or not. Lower functions change the profile
@@ -266,7 +277,7 @@ def parseAnswer(problem, stepList):
 	### only useful in step mode
 	# print('parrseAnswer', stepList)
 	###
-	answer, provisionalAnswer = findAnswer(stepList)
+	answer, provisionalAnswer = findAnswer(stepList, problem)
 	answerPoint = None; solutionPoint = None
 	describeProblem(problem)
 	parseBehavior(stepList, problem)
@@ -422,12 +433,13 @@ def parseEfficiency(stepList, problem, isCorrect):
 			return 0
 
 def parseError(problem, answer, provisionalAnswer):
-
+	breakFlag = False
+	print(problem, answer)
 	if len(answer.points) == 0:
 		getProfile().getProblemStats(problem.id).errorTracking['noPlot'] += 1
 		# Just analyze as if there is an answer is here, provided by the provisional asnwer
 		answer = provisionalAnswer
-		# return
+		return
 
 	isProbOneDimensional = checkOneDimensional(problem)
 	isAnsOnedimensional = checkAnsOneDimensional(answer)
@@ -435,31 +447,29 @@ def parseError(problem, answer, provisionalAnswer):
 		# both solutions are 1D
 		if isFlipping(problem, answer):
 			getProfile().getProblemStats(problem.id).errorTracking['flippingError'] += 1
-	elif(isProbOneDimensional):
-		# odd case
-		# print('resolved')
-		# UNIMPLEMENTED
-		pass
-	elif(isAnsOnedimensional):
-		if isSumming(problem, answer):
-			# resolved
-			# print('summing')
-			getProfile().getProblemStats(problem.id).errorTracking['sumError'] += 1
+			return
+
+	elif not isProbOneDimensional and isAnsOnedimensional and isSumming(problem, answer):
+		# resolved
+
+		getProfile().getProblemStats(problem.id).errorTracking['sumError'] += 1
+		return
 
 	elif isFlipping(problem, answer):
 		getProfile().getProblemStats(problem.id).errorTracking['flippingError'] += 1
+		return
 
-	elif isInvertingX(problem, answer) or isInvertingY(problem, answer):
-		if isInvertingX(problem, answer):
-			getProfile().getProblemStats(problem.id).errorTracking['invertX'] += 1
-		if isInvertingY(problem, answer):
-			getProfile().getProblemStats(problem.id).errorTracking['invertY'] += 1
+	if isInvertingX(problem, answer):
+		getProfile().getProblemStats(problem.id).errorTracking['invertX'] += 1
+		breakFlag = True
+	if isInvertingY(problem, answer):
+		getProfile().getProblemStats(problem.id).errorTracking['invertY'] += 1
+		breakFlag = True
 
-	elif parseIgnore(problem, answer):
-		# resolved
-		# print('ignoring')
-		pass
-	else:
+	if parseIgnore(problem, answer):
+		breakFlag = True
+
+	elif not breakFlag:
 		profile = getProfile()
 		distance = parseOffByN(problem, answer)
 		profile.getProblemStats(problem.id).errorTracking['offByCount'] += 1
@@ -475,62 +485,61 @@ def parseError(problem, answer, provisionalAnswer):
 
 def isSumming(problem, answer):
 	# print('checking isSumming')
-	ax = answer.points[0].x
-	ay = answer.points[0].y
+	ax = answer.points[-1].x
+	ay = answer.points[-1].y
 
 	px = problem.solution.points[0].x
 	py = problem.solution.points[0].y
 
 	possibleAnswers = [px + py, py - px, px - py]
-
 	if ax in possibleAnswers or ay in possibleAnswers:
 		return True
 	return False
 
 def isInvertingX(problem, answer):
-	ax = answer.points[0].x
+	ax = answer.points[-1].x
 
 	px = problem.solution.points[0].x
 
-	if (-1*ax) == px:
+	if (-1*ax) == px and ax != 0:
 		return True
 	else:
 		return False
 
 def isInvertingY(problem, answer):
-	ay = answer.points[0].y
+	ay = answer.points[-1].y
 
-	py = problem.solution.points[0].x
-
-	if (-1*ay) == py:
+	py = problem.solution.points[0].y
+	if (-1*ay) == py and ay != 0:
 		return True
 	else:
 		return False
 
 def parseIgnore(problem, answer):
 	# print('checking ignoring')
-	ax = answer.points[0].x
-	ay = answer.points[0].y
+	ax = answer.points[-1].x
+	ay = answer.points[-1].y
 
 	px = problem.solution.points[0].x
 	py = problem.solution.points[0].y
+	detected = False
 
 	if px == ax and py != ay and ay == 0:
 		getProfile().getProblemStats(problem.id).errorTracking['ignoreY'] += 1
-		return True
+		detected = True
 
 	if py == ay and px != ax and ax == 0:
 		getProfile().getProblemStats(problem.id).errorTracking['ignoreX'] += 1
-		return True
+		detected = True
 
-	return False
+	return detected
 
 # A flip is defined as the student switching the x and y coordinates
 # exaples would be giving (1,2) for a problem (2,1)
 def isFlipping(problem, answer):
 	# print('checking flip')
-	ax = answer.points[0].x
-	ay = answer.points[0].y
+	ax = answer.points[-1].x
+	ay = answer.points[-1].y
 
 	px = problem.solution.points[0].x
 	py = problem.solution.points[0].y
@@ -547,8 +556,8 @@ def isFlipping(problem, answer):
 def parseOffByN(problem, answer):
 	# print('check off by N')
 	# print("checking off by N")
-	ax = answer.points[0].x
-	ay = answer.points[0].y
+	ax = answer.points[-1].x
+	ay = answer.points[-1].y
 
 	px = problem.solution.points[0].x
 	py = problem.solution.points[0].y
@@ -572,8 +581,8 @@ def checkOneDimensional(problem):
 
 def checkAnsOneDimensional(answer):
 	# print('check 1D ans')
-	ax = answer.points[0].x
-	ay = answer.points[0].y
+	ax = answer.points[-1].x
+	ay = answer.points[-1].y
 
 	if ax == 0 or ay == 0:
 		# print('is 1D')
